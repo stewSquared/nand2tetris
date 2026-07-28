@@ -1,8 +1,27 @@
-## sbt project compiled with Scala 3
+# Emulator Planning
 
-### Usage
+- run compiled hack binary
+- machine language representation
+- assembler from ASM to binary
+- ASM as a scala DSL or representation?
+- option to output text .asm files
+- optional -- go directly from ASM rep to ML rep? (probably go to binary first)
 
-This is a normal sbt project. You can compile code with `sbt compile`, run it with `sbt run`, and `sbt console` will start a Scala 3 REPL.
+- computer state
+  - ROM
+  - RAM
+  - I/O
+  - Registers
+    - A
+    - D
+    - PC
+    - M (derived)
+    - current instruction (derived)
 
-For more information on the sbt-dotty plugin, see the
-[scala3-example-project](https://github.com/scala/scala3-example-project/blob/main/README.md).
+## Steps
+
+1. ML Representation
+2. CPU Architecture/State
+3. Assembler
+4. Visuals
+5. Emulator features
