@@ -16,7 +16,7 @@ case class State(
 ):
   def m: Binary = ram(a)
   def currentInstruction: Binary = rom(pc)
-  def execute(ml.instruction): State = ???
+  def execute(inst: ml.Instruction): State = ???
   // TODO: symbolic register values?
   def r0: Binary = ram(0) // maybe optimize later?
   // SP, LCL, ARG, THIS, THAT

@@ -9,7 +9,7 @@ case class AInst(n: Binary) extends Instruction
 
 // type Comp = Int
 case class Comp(
-  // TODO: put fromMem here?
+  fromMem: Boolean,
   zeroX: Boolean,
   negateX: Boolean,
   zeroY: Boolean,
@@ -20,14 +20,15 @@ case class Comp(
 
 object Comp:
   def fromBinary(n: Binary): Comp =
-    inline val opCode = n >> 6
+    val comp = n >> 6
     Comp(
-      zeroX     = (opCode >> 5) & 1 == 1,
-      negateX   = (opCode >> 4) & 1 == 1,
-      zeroY     = (opCode >> 3) & 1 == 1,
-      negateY   = (opCode >> 2) & 1 == 1,
-      add       = (opCode >> 1) & 1 == 1,
-      negateOut = (opCode >> 0) & 1 == 1
+      fromMem   = ((comp >> 6) & 1) != 0,
+      zeroX     = ((comp >> 5) & 1) != 0,
+      negateX   = ((comp >> 4) & 1) != 0,
+      zeroY     = ((comp >> 3) & 1) != 0,
+      negateY   = ((comp >> 2) & 1) != 0,
+      add       = ((comp >> 1) & 1) != 0,
+      negateOut = ((comp >> 0) & 1) != 0
     )
 
 case class Dest(
@@ -42,9 +43,9 @@ case class Dest(
 object Dest:
   def fromBinary(n: Binary): Dest =
     val destBits = (n >> 3) & 0b111
-    val a = destBits & 0b001
-    val d = destBits & 0b010
-    val m = destBits & 0b100
+    val m = (destBits & 0b001) == 0b001
+    val d = (destBits & 0b010) == 0b010
+    val a = (destBits & 0b100) == 0b100
     Dest(a=a, d=d, m=m)
 
 
@@ -55,15 +56,13 @@ object Jump:
   def fromBinary(n: Binary) = Jump.fromOrdinal(n & 0b111)
 
 case class CInst(
-  fromMem: Boolean,
   comp: Comp,
   dest: Dest,
   jump: Jump
 ) extends Instruction
 
 object CInst:
-  def fromBinary(n: Binary): CInst = (
-    fromMem = (n >> (3 + 3 + 6)) & 1 == 1,
+  def fromBinary(n: Binary): CInst = CInst(
     comp = Comp.fromBinary(n),
     dest = Dest.fromBinary(n),
     jump = Jump.fromBinary(n)

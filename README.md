@@ -1,5 +1,6 @@
 # Emulator Planning
 
+## Wish List
 - run compiled hack binary
 - machine language representation
 - assembler from ASM to binary
@@ -7,6 +8,7 @@
 - option to output text .asm files
 - optional -- go directly from ASM rep to ML rep? (probably go to binary first)
 
+## Architecture
 - computer state
   - ROM
   - RAM
