@@ -1,34 +1,78 @@
 package nand2tetris.ml
 
+type Program = List[Instruction]
+
 type Binary = Int
 
-sealed trait Instruction
+def show(n: Int): String = f"$n%04x"
+
+sealed trait Instruction:
+
+  def toHex: String = this match
+    case AInst(n) => show(n)
+    case CInst(comp, dest, jump) =>
+      val preBits = 0xE000
+      val compBits = comp.bits << 6
+      val destBits = List(
+        if dest.a then 4 else 0,
+        if dest.d then 2 else 0,
+        if dest.m then 1 else 0
+      ).sum << 3
+      val jumpBits = jump.ordinal
+      val bits = preBits | compBits | destBits | jumpBits
+      show(bits)
 
 // last 15 bits of the instruction, 0x0 to 0x7FFF
 case class AInst(n: Binary) extends Instruction
 
 // type Comp = Int
 case class Comp(
-  fromMem: Boolean,
-  zeroX: Boolean,
-  negateX: Boolean,
-  zeroY: Boolean,
-  negateY: Boolean,
-  add: Boolean, // otherwise &
-  negateOut: Boolean
-)
+  a: Boolean,
+  zx: Boolean,
+  nx: Boolean,
+  zy: Boolean,
+  ny: Boolean,
+  f: Boolean, // if true + else &
+  no: Boolean
+):
+  def bit(b: Boolean): Int = if b then 1 else 0
+  def bits: Int = List(
+    bit(a) << 6,
+    bit(zx) << 5,
+    bit(nx) << 4,
+    bit(zy) << 3,
+    bit(ny) << 2,
+    bit(f) << 1,
+    bit(no) << 0,
+  ).sum
+
+  def fromMem = this.copy(a = true)
+  def zeroX = this.copy(zx = true)
+  def negX = this.copy(nx = true)
+  def zeroY = this.copy(zy = true)
+  def negY = this.copy(ny = true)
+  def add = this.copy(f = true)
+  def and = this.copy(f = false)
+  def negate = this.copy(no = true)
+
+  def xNegOne = this.zeroX.negX
+  def yNegOne = this.zeroY.negY
+  def x = this.copy(zx = false, nx = false)
+  def y = this.copy(zy = false, ny = false)
 
 object Comp:
+  def default: Comp = Comp(false, false, false, false, false, false, false)
+
   def fromBinary(n: Binary): Comp =
     val comp = n >> 6
     Comp(
-      fromMem   = ((comp >> 6) & 1) != 0,
-      zeroX     = ((comp >> 5) & 1) != 0,
-      negateX   = ((comp >> 4) & 1) != 0,
-      zeroY     = ((comp >> 3) & 1) != 0,
-      negateY   = ((comp >> 2) & 1) != 0,
-      add       = ((comp >> 1) & 1) != 0,
-      negateOut = ((comp >> 0) & 1) != 0
+      a   = ((comp >> 6) & 1) != 0,
+      zx     = ((comp >> 5) & 1) != 0,
+      nx   = ((comp >> 4) & 1) != 0,
+      zy     = ((comp >> 3) & 1) != 0,
+      ny   = ((comp >> 2) & 1) != 0,
+      f       = ((comp >> 1) & 1) != 0,
+      no = ((comp >> 0) & 1) != 0
     )
 
 case class Dest(
