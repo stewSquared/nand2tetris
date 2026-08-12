@@ -1,6 +1,11 @@
 # Emulator Planning
 
 ## Wish List
+- Test assembly translation
+- source assembly test programs
+- maybe a DSL for assembly programs
+- clean up the API for ASM/ML
+
 - run compiled hack binary
 - machine language representation
 - assembler from ASM to binary

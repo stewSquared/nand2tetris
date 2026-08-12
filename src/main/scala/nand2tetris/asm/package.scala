@@ -17,6 +17,8 @@ type Comment = String
 object Comment:
   def apply(s: String): Comment = s
 
+case class Label(sym: UserSymbol)
+
 type Line = Label | Inst | Comment
 type Program = List[Line]
 object Program:
@@ -26,7 +28,7 @@ object Program:
 object Line:
   def parse(raw: String): Line = raw.strip() match
     case s"//$comment" => Comment(comment)
-    case s"($label)" => Label(label)
+    case s"($name)" => Label(UserSymbol(name))
     case rawInst => Inst.parse(rawInst)
 
 // @main def assemble(program: Program): List[ml.Instruction] =
@@ -40,23 +42,31 @@ def symbolTable(program: Program): Map[Symbol, Address] =
     def countVar: State = copy(varCount = varCount + 1)
     def assoc(sym: Symbol, adr: Address): State = copy(table = table.updated(sym, adr))
 
-  val state = program.foldLeft(State(0, 0, Map.empty)):
+  val labels = program.collect:
+    case label: Label => label.sym -> 0
+
+  val state = program.foldLeft(State(0, 0, labels.toMap)):
     case (state, comment: Comment) => state
-    case (state, label: Label) => state.assoc(label, state.instCount)
-    case (state, AInst(sym: Var)) if !state.table.contains(sym) =>
+    case (state, Label(sym)) => state.assoc(sym, state.instCount)
+    case (state, AInst(varSym: UserSymbol)) if !state.table.contains(varSym) =>
       state
         .countInst
         .countVar
-        .assoc(sym, 16 + state.varCount)
+        .assoc(varSym, 16 + state.varCount)
     case (state, _: Inst) => state.countInst
 
   state.table
 
-def deref(program: Program, table: Map[Symbol, Address]): Program =
-  program.map:
-    case AInst(sym: PredefSymbol) => AInst(sym.value)
-    case AInst(sym: Symbol) => AInst(table(sym): Constant)
-    case line => line
+def deref(program: Program, table: Map[Symbol, Address]): List[Inst] =
+  program.flatMap:
+    case AInst(sym: PredefSymbol) => Some(AInst(sym.value))
+    case AInst(sym: Symbol) => Some(AInst(table(sym): Constant))
+    case inst: CInst => Some(inst)
+    case line => None
+
+// should be able to call .toML on a single inst
+// any c inst, and only dereferenced a insts
+// TODO: should derefrenced A inst be a different type?
 
 def toML(program: Program): ml.Program =
   val table = symbolTable(program)
@@ -97,7 +107,6 @@ def toML(program: Program): ml.Program =
         case Dec(Reg.A) => mlc.y.add.xNegOne
         case Dec(Reg.M) => mlc.y.add.xNegOne.fromMem
 
-
       ml.CInst(
         comp = mlComp,
         dest = ml.Dest(
@@ -130,7 +139,11 @@ object Constant:
     require((0 to 0x7FFF).contains(n), "Constants are unsigned 15 bit")
     n
 
-sealed trait Symbol
+sealed trait Symbol:
+  def isPredef: Boolean = this match
+    case _: PredefSymbol => true
+    case _ => false
+
 sealed trait PredefSymbol extends Symbol:
   def value: Constant
 
@@ -151,8 +164,11 @@ enum HardcodedSymbol extends PredefSymbol:
     case SCREEN => 0x4000
     case KBD => 0x6000
 
-case class Label(name: String) extends Symbol
-case class Var(name: String) extends Symbol
+case class UserSymbol(name: String) extends Symbol
+
+// sealed trait UserSymbol extends Symbol
+// case class Label(name: String) extends UserSymbol
+// case class Var(name: String) extends UserSymbol
 
 object Symbol:
   private val regIndices = (0 to 15).map(_.toString)
@@ -166,9 +182,10 @@ object Symbol:
     case "THAT" => HardcodedSymbol.THAT
     case "SCREEN" => HardcodedSymbol.SCREEN
     case "KBD" => HardcodedSymbol.KBD
-    case s"$name" if name.forall(_.isUpper) => Label(name)
-    case s"$name" if name.forall(_.isLower) => Var(name)
-    case s"$name" => throw new Exception(s"symbol isn't label or var? $name")
+    // case s"$name" if name.forall(_.isUpper) => Label(name)
+    // case s"$name" if name.forall(_.isLower) => Var(name)
+    // case name => throw new Exception(s"symbol isn't label or var? $name")
+    case name => UserSymbol(name)
 
 case class AInst(xxx: Constant | Symbol) extends Inst
 

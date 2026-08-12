@@ -4,26 +4,32 @@ type Program = List[Instruction]
 
 type Binary = Int
 
-def show(n: Int): String = f"$n%04x"
+// TODO: use opaque type
+// with hex/binary formatting
+// and 16bit validation upon creation
+// (need 15 bit validation for constants)
 
 sealed trait Instruction:
 
-  def toHex: String = this match
-    case AInst(n) => show(n)
+  def toBits: Int = this match
+    case AInst(n) => n
     case CInst(comp, dest, jump) =>
       val preBits = 0xE000
       val compBits = comp.bits << 6
       val destBits = List(
-        if dest.a then 4 else 0,
-        if dest.d then 2 else 0,
-        if dest.m then 1 else 0
+        if dest.a then 0b100 else 0,
+        if dest.d then 0b010 else 0,
+        if dest.m then 0b001 else 0
       ).sum << 3
       val jumpBits = jump.ordinal
-      val bits = preBits | compBits | destBits | jumpBits
-      show(bits)
+      preBits | compBits | destBits | jumpBits
+
+  def toHex: String = f"${toBits}%04x"
+  def toBinary: String = f"${toBits.toBinaryString}%16s".replace(' ', '0')
 
 // last 15 bits of the instruction, 0x0 to 0x7FFF
-case class AInst(n: Binary) extends Instruction
+case class AInst(n: Binary) extends Instruction:
+  override def toString = s"@$n"
 
 // type Comp = Int
 case class Comp(
@@ -35,6 +41,19 @@ case class Comp(
   f: Boolean, // if true + else &
   no: Boolean
 ):
+  override def toString: String =
+    val x =
+      val neg = if nx then "~" else ""
+      neg + (if zx then "0" else "x")
+    val y =
+      val neg = if ny then "~" else ""
+      neg + (if zy then "0" else "y")
+
+    val binop = if f then s"$x + $y" else s"$x & $y"
+
+    if no then s"~($binop)" else binop
+
+
   def bit(b: Boolean): Int = if b then 1 else 0
   def bits: Int = List(
     bit(a) << 6,
@@ -56,6 +75,7 @@ case class Comp(
   def negate = this.copy(no = true)
 
   def xNegOne = this.zeroX.negX
+  // TODO: synonym? all 1s?
   def yNegOne = this.zeroY.negY
   def x = this.copy(zx = false, nx = false)
   def y = this.copy(zy = false, ny = false)
@@ -75,14 +95,22 @@ object Comp:
       no = ((comp >> 0) & 1) != 0
     )
 
+// maybe I'll simplify this to three possible destinations
+// (on null)
+// rather than 8
 case class Dest(
   a: Boolean,
   d: Boolean,
   m: Boolean// MD=A
-)
-// maybe I'll simplify this to three possible destinations
-// (on null)
-// rather than 8
+):
+  override def toString: String =
+    List(
+      if a then "A" else "",
+      if d then "D" else "",
+      if m then "M" else ""
+    ).mkString("")
+
+  def isNull = !a && !d && !m
 
 object Dest:
   def fromBinary(n: Binary): Dest =
@@ -103,7 +131,11 @@ case class CInst(
   comp: Comp,
   dest: Dest,
   jump: Jump
-) extends Instruction
+) extends Instruction:
+  override def toString=
+    val jumpStr = if jump != Jump.Null then s";${jump}" else ""
+    if dest.isNull then s"$comp$jumpStr"
+    else s"${dest.toString}=$comp$jumpStr"
 
 object CInst:
   def fromBinary(n: Binary): CInst = CInst(

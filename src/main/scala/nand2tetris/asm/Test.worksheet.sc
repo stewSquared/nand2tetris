@@ -51,41 +51,91 @@ val program = Program.parse(testProgramSource)
 
 val table = symbolTable(program)
 
+table foreach println
+
 val transformed = deref(program, table)
 
 val mlProgram = toML(program)
 mlProgram foreach println
 
 mlProgram.map(_.toHex) foreach println
+mlProgram.map(_.toBinary) foreach println
+
+mlProgram.map: line =>
+  line.toBinary -> line
+.foreach:
+  println
+
+transformed.zip(mlProgram).foreach:
+  case (asm, ml) => println:
+    s"${ml.toBinary} <- $ml <- $asm"
 
 program foreach println
 
 transformed foreach println
 
-def parse(program: String): List[Line] =
-  val rawLines = program.linesIterator
-  rawLines.map[Line]:
-    line =>
-      line.strip() match
-        case s"//$comment" => comment
-        case s"($label)" =>
-          assert(label.forall(_.isUpper), "Uppercase labels by convention")
-          Label(label)
-        case s"@$constant" if constant.toIntOption.isDefined =>
-          AInst(Constant.parse(constant.toInt))
-        case s"@$symbol" =>
-          AInst(Symbol.parse(symbol))
-        case raw@s"$dest=$comp;$jump" =>
-          CInst.parse(raw)
-          // CInst(
-          //   Reg.parseDest(dest),
-          //   comp = Comp.parse(comp),
-          //   jump = Jump.parse(jump)
-          // )
-        // case s"$comp;$jump" =>
+// Label.parse("ITSR0")
 
-          //
+Symbol.parse("ITSR0")
 
-  .toList
+val maxAsm = """|  // D = R0 - R1
+            |  @R0
+            |  D=M
+            |  @R1
+            |  D=D-M
+            |  // If (D > 0) goto ITSR0
+            |  @ITSR0
+            |  D;JGT
+            |  // Its R1
+            |  @R1
+            |  D=M
+            |  @OUTPUT_D
+            |  0;JMP
+            |(ITSR0)
+            |  @R0
+            |  D=M
+            |(OUTPUT_D)
+            |  @R2
+            |  M=D
+            |(END)
+            |  @END
+            |  0;JMP""".stripMargin
+
+val maxProgram = Program.parse(maxAsm)
+val maxProgramTable = symbolTable(maxProgram)
+val maxProgramDeref = deref(maxProgram, symbolTable(maxProgram))
+val maxMLProgram = toML(maxProgram)
+
+maxProgramTable foreach println
+
+maxProgramDeref.zip(maxMLProgram).foreach:
+  case (asm, ml) =>
+    println:
+      s"${ml.toBinary} <- $ml <- $asm"
+
+val generatedMaxBinary =
+  toML(Program.parse(maxAsm)).map(_.toBinary).mkString("\n")
+
+val maxBinary = """|0000000000000000
+                   |1111110000010000
+                   |0000000000000001
+                   |1111010011010000
+                   |0000000000001010
+                   |1110001100000001
+                   |0000000000000001
+                   |1111110000010000
+                   |0000000000001100
+                   |1110101010000111
+                   |0000000000000000
+                   |1111110000010000
+                   |0000000000000010
+                   |1110001100001000
+                   |0000000000001110
+                   |1110101010000111""".stripMargin
+
+generatedMaxBinary.lines.toList.size
+maxBinary.lines.toList.size
+
+maxBinary == generatedMaxBinary
 
 //
