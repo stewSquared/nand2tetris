@@ -5,6 +5,8 @@
 - source assembly test programs
 - maybe a DSL for assembly programs
 - clean up the API for ASM/ML
+- assembly macros
+- ASM line chunking (comment/label/inst)
 
 - run compiled hack binary
 - machine language representation
