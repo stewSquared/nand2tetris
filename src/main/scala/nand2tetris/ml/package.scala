@@ -45,9 +45,10 @@ case class Comp(
     val x =
       val neg = if nx then "~" else ""
       neg + (if zx then "0" else "x")
+    val deref = if a then "*" else ""
     val y =
       val neg = if ny then "~" else ""
-      neg + (if zy then "0" else "y")
+      neg + (if zy then "0" else deref + "y")
 
     val binop = if f then s"$x + $y" else s"$x & $y"
 
