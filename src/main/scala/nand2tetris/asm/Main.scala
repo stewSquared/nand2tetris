@@ -7,6 +7,7 @@ package asm
   val mlProgram = nand2tetris.asm.toML(asmProgram)
   val generatedBinary = mlProgram.map(_.toBinary)
 
+  // TODO: send this to stdout instead
   val hackFile = asmFile.replaceAll("\\.asm$", ".hack")
   val pw = new java.io.PrintWriter(hackFile)
   generatedBinary.foreach(pw.println)
