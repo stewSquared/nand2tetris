@@ -1,7 +1,13 @@
 package nand2tetris
 package asm
 
-sealed trait Inst
+sealed trait Inst:
+  override def toString: String = this match
+    case AInst(xxx) => s"@$xxx"
+    case CInst(dest, comp, jump) =>
+      val destStr = if dest.isEmpty then "" else dest.map(_.toString).mkString + "="
+      val jumpStr = if jump == Jump.Null then "" else ";" + jump.toString
+      s"$destStr$comp$jumpStr"
 
 object Inst:
   def parse(raw: String): Inst =
