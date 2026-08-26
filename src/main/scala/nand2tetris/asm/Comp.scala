@@ -14,6 +14,17 @@ sealed trait Comp:
     case Noop(Reg.M) => true
     case _ => false
 
+  override def toString = this match
+    case Add(left, right) => s"$left+$right"
+    case And(left, right) => s"$left&$right"
+    case Or(left, right) => s"$left|$right"
+    case Sub(left, right) => s"$left-$right"
+    case Inc(arg) => s"$arg+1"
+    case Dec(arg) => s"$arg-1"
+    case Neg(arg) => s"-$arg"
+    case Not(arg) => s"!$arg"
+    case Noop(arg) => arg.toString
+
 sealed trait BinOp extends Comp:
   def left: Reg
   def right: Reg
