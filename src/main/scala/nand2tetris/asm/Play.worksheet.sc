@@ -146,6 +146,19 @@ toML(List(
   CInst.parse("D=M-D")
 ))
 
+// val maxProgram = Program.parse(maxAsm)
+// val maxProgramTable = symbolTable(maxProgram)
 
+val endAddr = maxProgramTable(Symbol.parse("END"))
+
+val state = nand2tetris.cpu.State.init(
+  rom=toML(Program.parse(maxAsm)).toVector
+).setR0(5).setR1(31)
+
+val endState = Iterator.iterate(state)(_.step).dropWhile(_.pc != endAddr).next()
+
+endState.r2
+
+// state.step
 
 //
