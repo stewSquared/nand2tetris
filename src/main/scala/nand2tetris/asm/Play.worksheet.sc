@@ -1,4 +1,5 @@
 import nand2tetris.asm.*
+import nand2tetris.cpu.Word
 
 val testProgramSource =
   """|// Computes R1=1+...+R0
@@ -153,7 +154,7 @@ val endAddr = maxProgramTable(Symbol.parse("END"))
 
 val state = nand2tetris.cpu.State.init(
   rom=toML(Program.parse(maxAsm)).toVector
-).setR0(5).setR1(31)
+).setR0(Word(5)).setR1(Word(31))
 
 val endState = Iterator.iterate(state)(_.step).dropWhile(_.pc != endAddr).next()
 
