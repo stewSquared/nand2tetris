@@ -104,4 +104,29 @@ class MySuite extends munit.FunSuite {
     assertEquals(runMax(0x7FFF, 5).r2, 0x7FFF)
     // assertThrows[IllegalArgumentException](runMax(0x8000, 5))
 
+  test("Rect.asm works in the state machine"):
+    val rawAsm = io.Source.fromResource("Rect.asm").getLines().mkString("\n")
+    val asmProgram = nand2tetris.asm.Program.parse(rawAsm)
+    val symbolTable = asm.symbolTable(asmProgram)
+    val mlProgram = nand2tetris.asm.toML(asmProgram)
+
+    val endAddr = symbolTable(asm.Symbol.parse("END"))
+
+    val init = cpu.State
+      .initRom(mlProgram.toVector)
+      .setR0(2)
+
+    val endState = Iterator.iterate(init)(_.step)
+      .dropWhile(_.pc != endAddr)
+      .next()
+
+    endState.drawSubscreen(0, 0, 17, 4)
+
+    // screen is 512 x 256 pixels, 16 pixels per word, 32 words per row
+    assertEquals(endState.ram(0x4000), -1)
+    assertEquals(endState.ram(0x4001), 0)
+    assertEquals(endState.ram(0x4000 + 32), -1)
+    assertEquals(endState.ram(0x4000 + 33), 0)
+    assertEquals(endState.ram(0x4000 + 64), 0)
+
 }

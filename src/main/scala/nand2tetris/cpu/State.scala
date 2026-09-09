@@ -115,11 +115,18 @@ case class State(
 
   def subscreenPixels(x: Int, y: Int, width: Int, height: Int): Vector[Vector[Boolean]] =
     screen.slice(y, y + height).map: row =>
-      row.slice(x / 16, (x + width) / 16).map: word =>
-        (0 until 16).map: bit =>
-          ((word >> bit) & 1) == 1
-        .toVector
-      .flatten
+      val firstWordIndex = x / 16
+      // x=0 gets us the 0th word
+      // width = 17 gets us the 1st word
+      val lastWordIndex = (x + width) / 16
+      println(s"x=$x, y=$y, width=$width, height=$height, firstWordIndex=$firstWordIndex, lastWordIndex=$lastWordIndex")
+      val words = row.slice(firstWordIndex, lastWordIndex + 1)
+      val pixels = words
+        .flatMap: word =>
+          (0 until 16).map(bitIndex => (word >> (15 - bitIndex)) & 1)
+        .slice(x, x + width)
+      println(pixels)
+      pixels.toVector.map(_ == 1)
     .toVector
 
   def drawSubscreen(x: Int, y: Int, width: Int, height: Int): Unit =

@@ -15,6 +15,6 @@ val endState = Iterator.iterate(init)(_.step)
   .dropWhile(_.pc != endAddr)
   .next()
 
-endState.drawSubscreen(0, 0, 32, 16)
+endState.drawSubscreen(0, 0, 17, 8)
 
 //
