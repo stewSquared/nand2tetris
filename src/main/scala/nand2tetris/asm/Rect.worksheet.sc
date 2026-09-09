@@ -9,7 +9,7 @@ val endAddr = symbolTable(asm.Symbol.parse("END"))
 
 val init = cpu.State
   .initRom(mlProgram.toVector)
-  .setR0(4)
+  .setR0(cpu.Word(4))
 
 val endState = Iterator.iterate(init)(_.step)
   .dropWhile(_.pc != endAddr)
