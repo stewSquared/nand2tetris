@@ -2,6 +2,7 @@ package nand2tetris
 package cpu
 
 type Binary = Int
+// TODO need an apply method and plus method that wraps around 16 bits
 
 // represent data, instructions, and addresses with different type tags?
 

@@ -1,3 +1,5 @@
+package nand2tetris
+
 // For more information on writing tests, see
 // https://scalameta.org/munit/docs/getting-started.html
 class MySuite extends munit.FunSuite {
@@ -59,5 +61,28 @@ class MySuite extends munit.FunSuite {
     val derefAgain = nand2tetris.asm.deref(derefProgram, table)
 
     assertEquals(derefProgram, derefAgain)
+
+  test("Max.asm works in the state machine"):
+    val rawAsm = io.Source.fromResource("Max.asm").getLines().mkString("\n")
+    val asmProgram = nand2tetris.asm.Program.parse(rawAsm)
+    val symbolTable = asm.symbolTable(asmProgram)
+    val mlProgram = nand2tetris.asm.toML(asmProgram)
+
+    val endAddr = symbolTable(asm.Symbol.parse("END"))
+
+    val romLoaded = cpu.State.init(mlProgram.toVector)
+
+    def runMax(r0: Int, r1: Int): cpu.State =
+      val state = romLoaded.setR0(r0).setR1(r1)
+      Iterator.iterate(state)(_.step)
+        .dropWhile(_.pc != endAddr)
+        .next()
+
+    // reminder: these are unsigned 15-bit
+    assertEquals(runMax(5, 31).r2, 31)
+    assertEquals(runMax(31, 5).r2, 31)
+    // assertEquals(runMax(-0xF, 5).r2, 0x7ff1)
+    assertEquals(runMax(0x7FFF, 5).r2, 0x7FFF)
+    // assertThrows[IllegalArgumentException](runMax(0x8000, 5))
 
 }
