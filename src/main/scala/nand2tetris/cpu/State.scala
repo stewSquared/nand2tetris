@@ -12,6 +12,7 @@ case class State(
   // rom: Memory, // always instructions?
   rom: Vector[ml.Instruction], // always instructions?
   ram: Memory, // always data
+  // TODO: document and encode/validate rom/ram size
   a: Binary, // address or data
   d: Binary, // data
   pc: Binary // address
@@ -107,7 +108,28 @@ case class State(
   def arg = ram(2) // argument segment base address
   def ths = ram(3) // this segment base address
   def tht = ram(4) // that segment base address
-  // def screen = ram(0x4000)
+
+  // screen memory starts at 0x4000 and is 256x512 bits (32x256 words)
+  def screen: Vector[Vector[Binary]] =
+    ram.slice(0x4000, 0x6000).grouped(32).toVector
+
+  def subscreenPixels(x: Int, y: Int, width: Int, height: Int): Vector[Vector[Boolean]] =
+    screen.slice(y, y + height).map: row =>
+      row.slice(x / 16, (x + width) / 16).map: word =>
+        (0 until 16).map: bit =>
+          ((word >> bit) & 1) == 1
+        .toVector
+      .flatten
+    .toVector
+
+  def drawSubscreen(x: Int, y: Int, width: Int, height: Int): Unit =
+    val pixels = subscreenPixels(x, y, width, height)
+    for j <- 0 until height do
+      for i <- 0 until width do
+        val pixel = pixels(j)(i)
+        print(if pixel then "█" else "░")
+      println()
+
   // def keyboard = ram(0x6000)
 
 object State:
@@ -116,7 +138,7 @@ object State:
 
   def init(
     rom: Vector[ml.Instruction],
-    ram: Memory = Vector.fill(0x4000)(0),
+    ram: Memory = Vector.fill(0x8000)(0),
     a: Binary = 0,
     d: Binary = 0,
     pc: Binary = 0
