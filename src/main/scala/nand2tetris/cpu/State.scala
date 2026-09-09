@@ -114,7 +114,15 @@ object State:
   // def init(rom: Memory): State =
   //   State(rom=rom, ram=Vector.fill(0x4000)(0), a=0, d=0, pc=0)
 
-  def init(rom: Vector[ml.Instruction]): State =
-    State(rom=rom, ram=Vector.fill(0x4000)(0), a=0, d=0, pc=0)
+  def init(
+    rom: Vector[ml.Instruction],
+    ram: Memory = Vector.fill(0x4000)(0),
+    a: Binary = 0,
+    d: Binary = 0,
+    pc: Binary = 0
+  ): State =
+    State(rom=rom, ram=ram, a=a, d=d, pc=pc)
+
+  def initRom(rom: Vector[ml.Instruction]): State = init(rom=rom)
 
 //

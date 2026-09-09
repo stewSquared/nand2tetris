@@ -62,6 +62,25 @@ class MySuite extends munit.FunSuite {
 
     assertEquals(derefProgram, derefAgain)
 
+  test("Add.asm works in the state machine"):
+    val rawAsm = io.Source.fromResource("Add.asm").getLines().mkString("\n")
+    val asmProgram = nand2tetris.asm.Program.parse(rawAsm)
+    val symbolTable = asm.symbolTable(asmProgram)
+    val mlProgram = nand2tetris.asm.toML(asmProgram)
+
+    val init = cpu.State.initRom(mlProgram.toVector)
+    val states = LazyList.iterate(init)(_.step)
+    val end = states(6)
+
+    assertEquals(states(0).a, 0)
+    assertEquals(states(1).a, 2)
+    assertEquals(states(2).d, 2)
+    assertEquals(states(3).a, 3)
+    assertEquals(states(4).d, 5)
+    assertEquals(states(5).a, 0)
+    assertEquals(states(5).m, 0)
+    assertEquals(end.m, 5)
+
   test("Max.asm works in the state machine"):
     val rawAsm = io.Source.fromResource("Max.asm").getLines().mkString("\n")
     val asmProgram = nand2tetris.asm.Program.parse(rawAsm)
@@ -70,7 +89,7 @@ class MySuite extends munit.FunSuite {
 
     val endAddr = symbolTable(asm.Symbol.parse("END"))
 
-    val romLoaded = cpu.State.init(mlProgram.toVector)
+    val romLoaded = cpu.State.initRom(mlProgram.toVector)
 
     def runMax(r0: Int, r1: Int): cpu.State =
       val state = romLoaded.setR0(r0).setR1(r1)
