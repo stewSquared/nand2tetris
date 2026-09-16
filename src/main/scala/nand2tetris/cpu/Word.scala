@@ -8,7 +8,7 @@ object Word:
     // mask to 16 bits to translate to unsigned
     // but allow -0x8000 to 0xFFFF to allow flexibility in testing
     require(n >= -0x8000 && n <= 0xFFFF, s"Word must be in range [-0x8000, 0xFFFF], got $n" )
-    n & 0xFFFF
+    n << 16 >> 16
 
   extension (w: Word)
     def toInt: Int = w
