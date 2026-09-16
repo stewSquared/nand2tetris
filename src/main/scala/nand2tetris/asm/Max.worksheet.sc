@@ -109,4 +109,6 @@ states(6).pc.toInt
 
 endState.r2
 
+cpu.Word(0x8000)
+
 //
