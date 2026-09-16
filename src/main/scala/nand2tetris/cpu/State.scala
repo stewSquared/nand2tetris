@@ -33,7 +33,7 @@ case class State(
 
   private def tick: State = copy(pc = pc.inc)
   private def jump: State = copy(pc = a.asAddr)
-  private def setA(n: Word): State = copy(a = n)
+  private def setA(n: Word): State = copy(a = n) // note: A inst can only set U15 values
   private def setD(n: Word): State = copy(d = n)
   private def setM(n: Word): State = copy(ram = ram.updated(a.asAddr, n))
 
@@ -64,6 +64,7 @@ case class State(
         if m then state.setM(value) else state
 
   def movePC(jump: ml.Jump, result: Word): State = jump match
+    // TODO think about comparing Word with 0? think about .toInt behavior
     case ml.Jump.Null => this.tick
     case ml.Jump.JGT => if result.toInt > 0 then this.jump else this.tick
     case ml.Jump.JEQ => if result.toInt == 0 then this.jump else this.tick
