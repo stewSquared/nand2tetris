@@ -72,14 +72,14 @@ class MySuite extends munit.FunSuite {
     val states = LazyList.iterate(init)(_.step)
     val end = states(6)
 
-    assertEquals(states(0).a, 0)
-    assertEquals(states(1).a, 2)
-    assertEquals(states(2).d, 2)
-    assertEquals(states(3).a, 3)
-    assertEquals(states(4).d, 5)
-    assertEquals(states(5).a, 0)
-    assertEquals(states(5).m, 0)
-    assertEquals(end.m, 5)
+    assertEquals(states(0).a.toInt, 0)
+    assertEquals(states(1).a.toInt, 2)
+    assertEquals(states(2).d.toInt, 2)
+    assertEquals(states(3).a.toInt, 3)
+    assertEquals(states(4).d.toInt, 5)
+    assertEquals(states(5).a.toInt, 0)
+    assertEquals(states(5).m.toInt, 0)
+    assertEquals(end.m.toInt, 5)
 
   test("Max.asm works in the state machine"):
     val rawAsm = io.Source.fromResource("Max.asm").getLines().mkString("\n")
@@ -87,21 +87,21 @@ class MySuite extends munit.FunSuite {
     val symbolTable = asm.symbolTable(asmProgram)
     val mlProgram = nand2tetris.asm.toML(asmProgram)
 
-    val endAddr = symbolTable(asm.Symbol.parse("END"))
+    val endAddr = cpu.Word(symbolTable(asm.Symbol.parse("END")))
 
     val romLoaded = cpu.State.initRom(mlProgram.toVector)
 
     def runMax(r0: Int, r1: Int): cpu.State =
-      val state = romLoaded.setR0(r0).setR1(r1)
+      val state = romLoaded.setR0(cpu.Word(r0)).setR1(cpu.Word(r1))
       Iterator.iterate(state)(_.step)
         .dropWhile(_.pc != endAddr)
         .next()
 
     // reminder: these are unsigned 15-bit
-    assertEquals(runMax(5, 31).r2, 31)
-    assertEquals(runMax(31, 5).r2, 31)
+    assertEquals(runMax(5, 31).r2.toInt, 31)
+    assertEquals(runMax(31, 5).r2.toInt, 31)
     // assertEquals(runMax(-0xF, 5).r2, 0x7ff1)
-    assertEquals(runMax(0x7FFF, 5).r2, 0x7FFF)
+    assertEquals(runMax(0x7FFF, 5).r2.toInt, 0x7FFF)
     // assertThrows[IllegalArgumentException](runMax(0x8000, 5))
 
   test("Rect.asm works in the state machine"):
@@ -110,11 +110,11 @@ class MySuite extends munit.FunSuite {
     val symbolTable = asm.symbolTable(asmProgram)
     val mlProgram = nand2tetris.asm.toML(asmProgram)
 
-    val endAddr = symbolTable(asm.Symbol.parse("END"))
+    val endAddr = cpu.Word(symbolTable(asm.Symbol.parse("END")))
 
     val init = cpu.State
       .initRom(mlProgram.toVector)
-      .setR0(2)
+      .setR0(cpu.Word(2))
 
     val endState = Iterator.iterate(init)(_.step)
       .dropWhile(_.pc != endAddr)
@@ -123,10 +123,10 @@ class MySuite extends munit.FunSuite {
     endState.drawSubscreen(0, 0, 17, 4)
 
     // screen is 512 x 256 pixels, 16 pixels per word, 32 words per row
-    assertEquals(endState.ram(0x4000), -1)
-    assertEquals(endState.ram(0x4001), 0)
-    assertEquals(endState.ram(0x4000 + 32), -1)
-    assertEquals(endState.ram(0x4000 + 33), 0)
-    assertEquals(endState.ram(0x4000 + 64), 0)
+    assertEquals(endState.ram(cpu.U15(0x4000)).toInt, -1)
+    assertEquals(endState.ram(cpu.U15(0x4001)).toInt, 0)
+    assertEquals(endState.ram(cpu.U15(0x4000 + 32)).toInt, -1)
+    assertEquals(endState.ram(cpu.U15(0x4000 + 33)).toInt, 0)
+    assertEquals(endState.ram(cpu.U15(0x4000 + 64)).toInt, 0)
 
 }
