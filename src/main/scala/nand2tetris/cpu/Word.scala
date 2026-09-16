@@ -11,7 +11,7 @@ object Word:
     n << 16 >> 16
 
   extension (w: Word)
-    def toInt: Int = w
+    def toInt: Int = w << 16 >> 16 // TODO: why is this also in apply?
     def asAddr: U15 =
       require(w <= 0x7FFF, s"Word must be in range [0, 0x7FFF] to be used as an address, got $w")
       w
