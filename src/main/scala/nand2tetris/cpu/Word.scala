@@ -27,13 +27,11 @@ opaque type U15 = Int
 object U15:
   def apply(n: Int): U15 =
     require(n >= 0 && n <= 0x7FFF, s"U15 must be in range [0, 0x7FFF], got $n")
-    n & 0x7FFF
+    n
 
   extension (u: U15)
     def toInt: Int = u
     def toWord: Word = u
-    def inc: U15 = U15(u + 1)
-
-
+    def inc: U15 = (u + 1) & 0x7FFF
 
 //

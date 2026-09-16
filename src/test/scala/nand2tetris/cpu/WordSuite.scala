@@ -39,3 +39,14 @@ class WordSuite extends munit.FunSuite:
     assertEquals((Word(0x7FFF).unary_~), Word(0x8000))
     assertEquals((Word(0x8000).unary_~), Word(0x7FFF))
 
+  test("U15 should normalize to unsigned 15 bit"):
+    assertEquals(U15(0x7FFF).toInt, 0x7FFF)
+    assertEquals(U15(0x0000).toInt, 0x0000)
+
+    intercept[IllegalArgumentException](U15(0x8000))
+    intercept[IllegalArgumentException](U15(-1))
+
+  test("U15 increment overflow should wrap around"):
+    assertEquals(U15(0x7FFF).inc.toInt, 0x0000)
+    assertEquals(U15(0x0000).inc.toInt, 0x0001)
+
