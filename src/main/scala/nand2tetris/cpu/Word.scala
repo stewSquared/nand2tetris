@@ -16,8 +16,8 @@ object Word:
       require(w <= 0x7FFF, s"Word must be in range [0, 0x7FFF] to be used as an address, got $w")
       w
     def `+`(other: Word): Word = (w + other) & 0xFFFF
-    def `&`(other: Word): Word = (w & other) & 0xFFFF
-    def `|`(other: Word): Word = (w | other) & 0xFFFF
+    def `&`(other: Word): Word = (w & other)
+    def `|`(other: Word): Word = (w | other)
 
     def unary_~ : Word = ~w
     def unary_- : Word = Word(-w)
