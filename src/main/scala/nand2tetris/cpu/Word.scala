@@ -11,7 +11,7 @@ object Word:
     n << 16 >> 16
 
   extension (w: Word)
-    def toInt: Int = w << 16 >> 16 // TODO: why is this also in apply?
+    def toInt: Int = w
     def asAddr: U15 =
       require(w <= 0x7FFF, s"Word must be in range [0, 0x7FFF] to be used as an address, got $w")
       w
@@ -19,8 +19,8 @@ object Word:
     def `&`(other: Word): Word = (w & other) & 0xFFFF
     def `|`(other: Word): Word = (w | other) & 0xFFFF
 
-    def unary_~ : Word = (~w) & 0xFFFF
-    def unary_- : Word = (-w) & 0xFFFF // TODO: double check
+    def unary_~ : Word = ~w
+    def unary_- : Word = Word(-w)
 
 opaque type U15 = Int
 
