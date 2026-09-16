@@ -50,3 +50,16 @@ class WordSuite extends munit.FunSuite:
     assertEquals(U15(0x7FFF).inc.toInt, 0x0000)
     assertEquals(U15(0x0000).inc.toInt, 0x0001)
 
+  test("Word & Word should work"):
+    assertEquals(Word(0xFFFF) & Word(0x0000), Word(0x0000))
+    assertEquals(Word(0xFFFF) & Word(0xAAAA), Word(0xAAAA))
+    assertEquals(Word(0xFFFF) & Word(0xFFFF), Word(0xFFFF))
+    assertEquals(Word(0xAAAA) & Word(0x5555), Word(0x0000))
+    assertEquals(Word(0xAAAA) & Word(0xAAAA), Word(0xAAAA))
+
+  test("Word | Word should work"):
+    assertEquals(Word(0xFFFF) | Word(0x0000), Word(0xFFFF))
+    assertEquals(Word(0xAAAA) | Word(0x5555), Word(0xFFFF))
+    assertEquals(Word(0xAAAA) | Word(0xAAAA), Word(0xAAAA))
+    assertEquals(Word(0xAAAA) | Word(0x0000), Word(0xAAAA))
+
