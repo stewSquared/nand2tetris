@@ -15,7 +15,7 @@ object Word:
     def asAddr: U15 =
       require(w <= 0x7FFF, s"Word must be in range [0, 0x7FFF] to be used as an address, got $w")
       w
-    def `+`(other: Word): Word = (w + other) & 0xFFFF
+    def `+`(other: Word): Word = (w + other) << 16 >> 16
     def `&`(other: Word): Word = (w & other)
     def `|`(other: Word): Word = (w | other)
 

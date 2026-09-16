@@ -63,3 +63,8 @@ class WordSuite extends munit.FunSuite:
     assertEquals(Word(0xAAAA) | Word(0xAAAA), Word(0xAAAA))
     assertEquals(Word(0xAAAA) | Word(0x0000), Word(0xAAAA))
 
+  test("Word addition should work"):
+    assertEquals(Word(0x0001) + Word(0x0001), Word(0x0002))
+    assertEquals(Word(0x7FFF) + Word(0x0001), Word(0x8000))
+    assertEquals(Word(0xFFFF) + Word(0x0001), Word(0x0000))
+    assertEquals(Word(0xFFFF) + Word(0xFFFF), Word(0xFFFE))
