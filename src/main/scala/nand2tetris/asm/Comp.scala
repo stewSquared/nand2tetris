@@ -36,12 +36,12 @@ sealed trait Comp:
         case Const.Zero   => mlc.zeroX.add.zeroY
         case Const.NegOne => mlc.xNegOne.add.zeroY
       case bin: BinOp => bin.toML
-      case Not(Reg.D) => mlc.negX.and.yNegOne.negate
+      case Not(Reg.D) => mlc.x.and.yNegOne.negate
       case Not(Reg.A) => mlc.xNegOne.and.y.negate
       case Not(Reg.M) => mlc.xNegOne.and.y.negate.fromMem
-      case Neg(Reg.D) => mlc.negX.add.yNegOne.negate
-      case Neg(Reg.A) => mlc.negY.add.xNegOne.negate
-      case Neg(Reg.M) => mlc.negY.add.xNegOne.negate.fromMem
+      case Neg(Reg.D) => mlc.x.add.yNegOne.negate
+      case Neg(Reg.A) => mlc.y.add.xNegOne.negate
+      case Neg(Reg.M) => mlc.y.add.xNegOne.negate.fromMem
       case Inc(Reg.D) => mlc.negX.add.yNegOne.negate
       case Inc(Reg.A) => mlc.negY.add.xNegOne.negate
       case Inc(Reg.M) => mlc.negY.add.xNegOne.negate.fromMem
@@ -72,6 +72,7 @@ sealed trait BinOp extends Comp:
 sealed trait UnOp extends Comp:
   def arg: Reg
 
+// TODO: Scope these inside of Comp
 // TODO: in Add and AND, left is always D (right?)
 case class Add(left: Reg, right: Reg) extends BinOp
 case class And(left: Reg, right: Reg) extends BinOp
