@@ -49,8 +49,7 @@ case class Comp(
 
     if no then s"~($binop)" else binop
 
-
-  def bit(b: Boolean): Int = if b then 1 else 0
+  private def bit(b: Boolean): Int = if b then 1 else 0
   def bits: Int = List(
     bit(a) << 6,
     bit(zx) << 5,

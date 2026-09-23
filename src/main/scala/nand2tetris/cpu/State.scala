@@ -33,7 +33,7 @@ case class State(
   private def jump: State = copy(pc = a.asAddr)
   private def setA(n: Word): State = copy(a = n) // note: A inst can only set U15 values
   private def setD(n: Word): State = copy(d = n)
-  private def setM(n: Word): State = copy(ram = ram.updated(a.asAddr, n))
+  def setM(n: Word): State = copy(ram = ram.updated(a.asAddr, n))
 
   import util.chaining.*
 
