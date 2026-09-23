@@ -1,18 +1,13 @@
-package nand2tetris.ml
+package nand2tetris
+package ml
+
+import cpu.{U15, Word}
 
 type Program = List[Instruction]
 
-type Binary = Int
-
-// TODO: use opaque type
-// with hex/binary formatting
-// and 16bit validation upon creation
-// (need 15 bit validation for constants)
-
 sealed trait Instruction:
-
-  def toBits: Int = this match
-    case AInst(n) => n
+  def toWord: Word = this match
+    case AInst(n) => n.toWord
     case CInst(comp, dest, jump) =>
       val preBits = 0xE000
       val compBits = comp.bits << 6
@@ -22,13 +17,13 @@ sealed trait Instruction:
         if dest.m then 0b001 else 0
       ).sum << 3
       val jumpBits = jump.ordinal
-      preBits | compBits | destBits | jumpBits
+      Word(preBits | compBits | destBits | jumpBits)
 
-  def toHex: String = f"${toBits}%04x"
-  def toBinary: String = f"${toBits.toBinaryString}%16s".replace(' ', '0')
+  def toHex: String = f"${toWord.toInt}%04x"
+  def toBinary: String = f"${toWord.toInt.toBinaryString.takeRight(16)}%16s".replace(' ', '0')
 
 // last 15 bits of the instruction, 0x0 to 0x7FFF
-case class AInst(n: Binary) extends Instruction:
+case class AInst(n: U15) extends Instruction:
   override def toString = s"@$n"
 
 // type Comp = Int
@@ -84,16 +79,16 @@ case class Comp(
 object Comp:
   def default: Comp = Comp(false, false, false, false, false, false, false)
 
-  def fromBinary(n: Binary): Comp =
-    val comp = n >> 6
+  def fromWord(n: Word): Comp =
+    val compBits = (n.toInt >> 6) & 0x7F
     Comp(
-      a   = ((comp >> 6) & 1) != 0,
-      zx     = ((comp >> 5) & 1) != 0,
-      nx   = ((comp >> 4) & 1) != 0,
-      zy     = ((comp >> 3) & 1) != 0,
-      ny   = ((comp >> 2) & 1) != 0,
-      f       = ((comp >> 1) & 1) != 0,
-      no = ((comp >> 0) & 1) != 0
+      a   = ((compBits >> 6) & 1) != 0,
+      zx     = ((compBits >> 5) & 1) != 0,
+      nx   = ((compBits >> 4) & 1) != 0,
+      zy     = ((compBits >> 3) & 1) != 0,
+      ny   = ((compBits >> 2) & 1) != 0,
+      f       = ((compBits >> 1) & 1) != 0,
+      no = ((compBits >> 0) & 1) != 0
     )
 
 // maybe I'll simplify this to three possible destinations
@@ -114,20 +109,19 @@ case class Dest(
   def isNull = !a && !d && !m
 
 object Dest:
-  def fromBinary(n: Binary): Dest =
-    val destBits = (n >> 3) & 0b111
+  def fromWord(n: Word): Dest =
+    val destBits = (n.toInt >> 3) & 0b111
     val m = (destBits & 0b001) == 0b001
     val d = (destBits & 0b010) == 0b010
     val a = (destBits & 0b100) == 0b100
     Dest(a=a, d=d, m=m)
-
 
 enum Jump:
   case Null, JGT, JEQ, JGE, JLT, JNE, JLE, JMP
 
 object Jump:
   // todo: unify with asm.jump and move to cpu/model package?
-  def fromBinary(n: Binary) = Jump.fromOrdinal(n & 0b111)
+  def fromWord(n: Word) = Jump.fromOrdinal(n.toInt & 0b111)
 
 case class CInst(
   comp: Comp,
@@ -140,10 +134,8 @@ case class CInst(
     else s"${dest.toString}=$comp$jumpStr"
 
 object CInst:
-  def fromBinary(n: Binary): CInst = CInst(
-    comp = Comp.fromBinary(n),
-    dest = Dest.fromBinary(n),
-    jump = Jump.fromBinary(n)
+  def fromWord(n: Word): CInst = CInst(
+    comp = Comp.fromWord(n),
+    dest = Dest.fromWord(n),
+    jump = Jump.fromWord(n)
   )
-
-//

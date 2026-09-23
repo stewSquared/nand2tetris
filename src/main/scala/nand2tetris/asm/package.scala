@@ -1,44 +1,52 @@
 package nand2tetris
 package asm
 
-type Address = Int // 0x0000 - 0x7FFF // TODO: verify range
-type Constant = Int // 0x0 - 0x7FFF // TODO: Validate
-// Symbols can refer to ROM or RAM and deref to Constant.
-// Hardcoded constants stay unchanged,
-// and should probably not reference memory
-// Do we always know which? Can we tag those values?
+// Symbols can refer to ROM or RAM and deref to Address.
+type Address = cpu.U15
+object Address:
+  def apply(n: Int): Address = cpu.U15.apply(n)
 
+type RomAddress = Address
+object RomAddress:
+  def apply(n: Int): RomAddress = cpu.U15.apply(n)
+
+type RamAddress = Address
+object RamAddress:
+  def apply(n: Int): RamAddress = cpu.U15.apply(n)
+
+type Constant = cpu.U15
 object Constant:
-  def parse(n: Int): Constant =
-    require((0 to 0x7FFF).contains(n), "Constants are unsigned 15 bit")
-    n
+  def parse(n: Int): Constant = cpu.U15.apply(n)
 
-def symbolTable(program: Program): Map[Symbol, Address] =
-  case class State(instCount: Int, varCount: Int, table: Map[Symbol, Address]):
+type SymbolTable = Map[Symbol, Address]
+
+def symbolTable(program: Program): SymbolTable =
+  case class State(instCount: Int, varCount: Int, table: SymbolTable):
     def countInst: State = copy(instCount = instCount + 1)
     def countVar: State = copy(varCount = varCount + 1)
     def assoc(sym: Symbol, adr: Address): State = copy(table = table.updated(sym, adr))
 
-  val labels = program.collect:
-    case label: Label => label.sym -> 0
+  val labels: SymbolTable = program.collect:
+    case label: Label => label.sym -> RomAddress(0)
+  .toMap
 
-  val state = program.foldLeft(State(0, 0, labels.toMap)):
+  val state = program.foldLeft(State(0, 0, labels)):
     case (state, comment: Comment) => state
-    case (state, Label(sym)) => state.assoc(sym, state.instCount)
+    case (state, Label(sym)) => state.assoc(sym, RomAddress(state.instCount))
     case (state, AInst(varSym: UserSymbol)) if !state.table.contains(varSym) =>
       state
         .countInst
         .countVar
-        .assoc(varSym, 16 + state.varCount)
+        .assoc(varSym, RamAddress(16 + state.varCount))
     case (state, _: Inst) => state.countInst
 
   state.table
 
 // TODO: DerefProgram should be it's own type
-def deref(program: Program, table: Map[Symbol, Address]): List[Inst] =
+def deref(program: Program, table: SymbolTable): List[Inst] =
   program.flatMap:
     case AInst(sym: PredefSymbol) => Some(AInst(sym.value))
-    case AInst(sym: Symbol) => Some(AInst(table(sym): Constant))
+    case AInst(sym: Symbol) => Some(AInst(table(sym): Address))
     case inst: Inst => Some(inst)
     case line => None
 
