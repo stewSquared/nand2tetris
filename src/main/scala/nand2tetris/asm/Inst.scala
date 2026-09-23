@@ -9,6 +9,20 @@ sealed trait Inst:
       val jumpStr = if jump == Jump.Null then "" else ";" + jump.toString
       s"$destStr$comp$jumpStr"
 
+  def toML: ml.Instruction = this match
+    case AInst(sym: Symbol) => throw new Exception("program not dereferenced") // TODO make this not compile
+    case AInst(adr: Constant) => ml.AInst(adr)
+    case CInst(dest, comp, jump) =>
+      ml.CInst(
+        comp = comp.toML,
+        dest = ml.Dest(
+          a = dest.contains(Reg.A),
+          d = dest.contains(Reg.D),
+          m = dest.contains(Reg.M)
+        ),
+        jump = jump.toML
+      )
+
 object Inst:
   def parse(raw: String): Inst =
     if raw.startsWith("@") then AInst.parse(raw)
@@ -40,7 +54,9 @@ object Reg:
     regs.toSet
 
 enum Jump:
+  // TODO: Does it make sense to Unify ml.Jump and asm.Jump?
   case Null, JGT, JEQ, JGE, JLT, JNE, JLE, JMP
+  def toML: ml.Jump = ml.Jump.fromOrdinal(this.ordinal)
 
 object Jump:
   def parse(raw: String): Jump =
