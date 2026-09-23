@@ -126,6 +126,7 @@ enum Jump:
   case Null, JGT, JEQ, JGE, JLT, JNE, JLE, JMP
 
 object Jump:
+  // todo: unify with asm.jump and move to cpu/model package?
   def fromBinary(n: Binary) = Jump.fromOrdinal(n & 0b111)
 
 case class CInst(

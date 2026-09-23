@@ -25,9 +25,49 @@ sealed trait Comp:
     case Not(arg) => s"!$arg"
     case Noop(arg) => arg.toString
 
+  def toML: ml.Comp =
+    val mlc = ml.Comp.default
+    this match
+      case Noop(arg) => arg match
+        case Reg.D        => mlc.x.and.yNegOne
+        case Reg.A        => mlc.xNegOne.and.y
+        case Reg.M        => mlc.xNegOne.and.y.fromMem
+        case Const.One    => mlc.xNegOne.add.yNegOne.negate
+        case Const.Zero   => mlc.zeroX.add.zeroY
+        case Const.NegOne => mlc.xNegOne.add.zeroY
+      case bin: BinOp => bin.toML
+      case Not(Reg.D) => mlc.negX.and.yNegOne.negate
+      case Not(Reg.A) => mlc.xNegOne.and.y.negate
+      case Not(Reg.M) => mlc.xNegOne.and.y.negate.fromMem
+      case Neg(Reg.D) => mlc.negX.add.yNegOne.negate
+      case Neg(Reg.A) => mlc.negY.add.xNegOne.negate
+      case Neg(Reg.M) => mlc.negY.add.xNegOne.negate.fromMem
+      case Inc(Reg.D) => mlc.negX.add.yNegOne.negate
+      case Inc(Reg.A) => mlc.negY.add.xNegOne.negate
+      case Inc(Reg.M) => mlc.negY.add.xNegOne.negate.fromMem
+      case Dec(Reg.D) => mlc.x.add.yNegOne
+      case Dec(Reg.A) => mlc.y.add.xNegOne
+      case Dec(Reg.M) => mlc.y.add.xNegOne.fromMem
+
 sealed trait BinOp extends Comp:
+  require(left == Reg.D ^ right == Reg.D, s"BinOp must have exactly one D operand, got $this")
   def left: Reg
   def right: Reg
+
+  override def toML: ml.Comp = this match
+    case Add(_, Reg.A) => ml.Comp.default.x.add.y
+    case Add(_, Reg.M) => ml.Comp.default.x.add.y.fromMem
+    case And(_, Reg.A) => ml.Comp.default.x.and.y
+    case And(_, Reg.M) => ml.Comp.default.x.and.y.fromMem
+    case Or(_, Reg.A) => ml.Comp.default.negX.and.negY.negate
+    case Or(_, Reg.M) => ml.Comp.default.negX.and.negY.negate.fromMem
+    case Add(reg, Reg.D) => Add(Reg.D, reg).toML
+    case Sub(Reg.D, Reg.A) => ml.Comp.default.negX.add.y.negate
+    case Sub(Reg.A, Reg.D) => ml.Comp.default.negY.add.x.negate
+    case Sub(Reg.D, Reg.M) => ml.Comp.default.negX.add.y.negate.fromMem
+    case Sub(Reg.M, Reg.D) => ml.Comp.default.negY.add.x.negate.fromMem
+    case _ => throw new Exception(s"Unsupported BinOp: $this") // should be dead code
+
 
 sealed trait UnOp extends Comp:
   def arg: Reg
