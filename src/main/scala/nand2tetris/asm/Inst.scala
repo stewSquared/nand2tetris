@@ -11,7 +11,7 @@ sealed trait Inst:
 
   def toML: ml.Instruction = this match
     case AInst(sym: Symbol) => throw new Exception("program not dereferenced") // TODO make this not compile
-    case AInst(adr: Constant) => ml.AInst(adr)
+    case AInst(adr: Address) => ml.AInst(adr)
     case CInst(dest, comp, jump) =>
       ml.CInst(
         comp = comp.toML,
@@ -28,7 +28,7 @@ object Inst:
     if raw.startsWith("@") then AInst.parse(raw)
     else CInst.parse(raw)
 
-case class AInst(xxx: Constant | Symbol) extends Inst
+case class AInst(xxx: Constant | (Symbol | Address)) extends Inst
 
 object AInst:
   def parse(raw: String): AInst = raw match

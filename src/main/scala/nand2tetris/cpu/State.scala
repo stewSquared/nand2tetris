@@ -25,8 +25,6 @@ case class State(
   d: Word, // data
   pc: U15 // address
 ):
-  // a is technically a 16-bit register, but A-inst only allows 15-bit values, so we can treat it as a 15-bit unsigned value for the purposes of addressing memory
-  // TODO: think about and test those edge cases, since A can be loaded in other ways
 
   def m: Word = ram(a.asAddr)
   def currentInstruction: ml.Instruction = rom(pc)
@@ -75,7 +73,7 @@ case class State(
     case ml.Jump.JMP => this.jump
 
   def step: State = currentInstruction match
-    case ml.AInst(n) => setA(Word(n)).tick // TODO: think about this one, since I know A inst only gives unsigned 15-bit values
+    case ml.AInst(u15) => setA(u15.toWord).tick
     case ml.CInst(comp, dest, jump) =>
       val compValue = calcComp(comp)
       this.setDest(dest, compValue).movePC(jump, compValue)

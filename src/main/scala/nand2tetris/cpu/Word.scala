@@ -12,6 +12,9 @@ object Word:
 
   extension (w: Word)
     def toInt: Int = w
+    def toU15: Option[U15] =
+      Option.when(w >= 0 && w <= 0x7FFF)(U15(w))
+
     def asAddr: U15 =
       require(w <= 0x7FFF, s"Word must be in range [0, 0x7FFF] to be used as an address, got $w")
       w
