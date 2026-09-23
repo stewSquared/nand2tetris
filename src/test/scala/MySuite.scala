@@ -87,7 +87,7 @@ class MySuite extends munit.FunSuite {
     val symbolTable = asm.symbolTable(asmProgram)
     val mlProgram = nand2tetris.asm.toML(asmProgram)
 
-    val endAddr = cpu.Word(symbolTable(asm.Symbol.parse("END")))
+    val endAddr = symbolTable(asm.Symbol.parse("END"))
 
     val romLoaded = cpu.State.initRom(mlProgram.toVector)
 
@@ -110,7 +110,7 @@ class MySuite extends munit.FunSuite {
     val symbolTable = asm.symbolTable(asmProgram)
     val mlProgram = nand2tetris.asm.toML(asmProgram)
 
-    val endAddr = cpu.Word(symbolTable(asm.Symbol.parse("END")))
+    val endAddr = symbolTable(asm.Symbol.parse("END"))
 
     val init = cpu.State
       .initRom(mlProgram.toVector)
@@ -128,5 +128,4 @@ class MySuite extends munit.FunSuite {
     assertEquals(endState.ram(cpu.U15(0x4000 + 32)).toInt, -1)
     assertEquals(endState.ram(cpu.U15(0x4000 + 33)).toInt, 0)
     assertEquals(endState.ram(cpu.U15(0x4000 + 64)).toInt, 0)
-
 }
