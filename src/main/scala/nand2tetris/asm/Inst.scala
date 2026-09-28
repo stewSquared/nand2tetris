@@ -39,15 +39,22 @@ object AInst:
         .getOrElse(Symbol.parse(xxx))
     case _ => throw new Exception("A-inst must start with @")
 
-enum Reg:
-  case A, D, M
+sealed trait Reg
 
 object Reg:
-  def parse(raw: String): Reg = Reg.valueOf(raw)
-  def parseRHS(raw: String): (Reg.A.type | Reg.M.type) =  raw match
-    case "A" => Reg.A
-    case "M" => Reg.M
-    case r => throw new IllegalArgumentException(s"Invalid second operand: $r")
+  case object D extends Reg
+  type D = D.type
+
+  enum AM extends Reg:
+    case A, M
+
+  export AM.{A, M}
+
+  def parse(raw: String): Reg = raw match
+    case "D" => D
+    case r => parseRHS(r)
+
+  def parseRHS(raw: String): Reg.AM = AM.valueOf(raw)
 
   val noDest: Set[Reg] = Set.empty
   def parseDest(raw: String): Set[Reg] =
