@@ -12,7 +12,7 @@ class InstSuite extends munit.FunSuite:
         d = cpu.Word(d)
       ).setM(cpu.Word(m)).step
 
-      assertEquals(result.d.toInt, expected, s"Failed for $asm with a=$a, d=$d, m=$m")
+      assertEquals(result.d.toInt, expected, s"Failed for $asm with a=$a, d=$d, m=$m, mlComp=${inst.toML}")
 
   testComp("D=D+A", expected = 7, a = 5, d = 2)
   testComp("D=0", expected = 0)

@@ -2,6 +2,8 @@ package nand2tetris
 package ml
 
 import cpu.{U15, Word}
+import nand2tetris.ml.Comp.Add
+import nand2tetris.ml.Comp.And
 
 type Program = List[Instruction]
 
@@ -26,16 +28,28 @@ sealed trait Instruction:
 case class AInst(n: U15) extends Instruction:
   override def toString = s"@$n"
 
-// type Comp = Int
-case class Comp(
-  a: Boolean,
-  zx: Boolean,
-  nx: Boolean,
-  zy: Boolean,
-  ny: Boolean,
-  f: Boolean, // if true + else &
-  no: Boolean
-):
+case class Comp(op: Comp.Op, no: Boolean = false, a: Boolean = false):
+  val zx = op.x.zero
+  val nx = op.x.negate
+  val zy = op.y.zero
+  val ny = op.y.negate
+  val f = op match
+    case _: Comp.Add => true
+    case _: Comp.And => false
+
+  def negated = this.copy(no = true)
+  def fromMem = this.copy(a = true)
+
+  val bits =
+    inline def bit(b: Boolean): Int = if b then 1 else 0
+    bit(a) << 6
+    | bit(zx) << 5
+    | bit(nx) << 4
+    | bit(zy) << 3
+    | bit(ny) << 2
+    | bit(f) << 1
+    | bit(no) << 0
+
   override def toString: String =
     val x =
       val neg = if nx then "~" else ""
@@ -49,46 +63,61 @@ case class Comp(
 
     if no then s"~($binop)" else binop
 
-  private def bit(b: Boolean): Int = if b then 1 else 0
-  def bits: Int = List(
-    bit(a) << 6,
-    bit(zx) << 5,
-    bit(nx) << 4,
-    bit(zy) << 3,
-    bit(ny) << 2,
-    bit(f) << 1,
-    bit(no) << 0,
-  ).sum
-
-  def fromMem = this.copy(a = true)
-  def zeroX = this.copy(zx = true)
-  def negX = this.copy(nx = true)
-  def zeroY = this.copy(zy = true)
-  def negY = this.copy(ny = true)
-  def add = this.copy(f = true)
-  def and = this.copy(f = false)
-  def negate = this.copy(no = true)
-
-  def xNegOne = this.zeroX.negX
-  // TODO: synonym? all 1s?
-  def yNegOne = this.zeroY.negY
-  def x = this.copy(zx = false, nx = false)
-  def y = this.copy(zy = false, ny = false)
+  def calc(xVal: Word, yVal: Word): Word =
+    val o = op match
+      case Add(x, y) => x.calc(xVal) + y.calc(yVal)
+      case And(x, y) => x.calc(xVal) & y.calc(yVal)
+    if no then ~o else o
 
 object Comp:
-  def default: Comp = Comp(false, false, false, false, false, false, false)
-
   def fromWord(n: Word): Comp =
     val compBits = (n.toInt >> 6) & 0x7F
+    val a = ((compBits >> 6) & 1) == 1
+    val zx = ((compBits >> 5) & 1) == 1
+    val nx = ((compBits >> 4) & 1) == 1
+    val zy = ((compBits >> 3) & 1) == 1
+    val ny = ((compBits >> 2) & 1) == 1
+    val f = ((compBits >> 1) & 1) == 1
+    val no = ((compBits >> 0) & 1) == 1
+
+    val x = Comp.Arg.fromBits(zx, nx)
+    val y = Comp.Arg.fromBits(zy, ny)
+
     Comp(
-      a   = ((compBits >> 6) & 1) != 0,
-      zx     = ((compBits >> 5) & 1) != 0,
-      nx   = ((compBits >> 4) & 1) != 0,
-      zy     = ((compBits >> 3) & 1) != 0,
-      ny   = ((compBits >> 2) & 1) != 0,
-      f       = ((compBits >> 1) & 1) != 0,
-      no = ((compBits >> 0) & 1) != 0
+      op = if f then Add(x, y) else And(x, y),
+      no = no,
+      a = a
     )
+
+  enum Arg(val zero: Boolean, val negate: Boolean):
+    case Id extends Arg(zero = false, negate = false)
+    case Zero extends Arg(zero = true, negate = false)
+    case Inv extends Arg(zero = false, negate = true)
+    case Ones extends Arg(zero = true, negate = true)
+
+    def calc(value: Word): Word = this match
+      case Id => value
+      case Zero => Word(0)
+      case Inv => ~value
+      case Ones => Word(-1)
+
+    def `+`(other: Arg): Comp.Op = Comp.Add(this, other)
+    def `&`(other: Arg): Comp.Op = Comp.And(this, other)
+
+  object Arg:
+    def fromBits(zero: Boolean, negate: Boolean): Arg =
+      (zero, negate) match
+        case (false, false) => Id
+        case (true, false) => Zero
+        case (false, true) => Inv
+        case (true, true) => Ones
+
+  sealed trait Op:
+    def x: Arg
+    def y: Arg
+
+  case class Add(x: Arg, y: Arg) extends Op
+  case class And(x: Arg, y: Arg) extends Op
 
 // maybe I'll simplify this to three possible destinations
 // (on null)

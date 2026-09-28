@@ -1,6 +1,8 @@
 package nand2tetris
 package cpu
 
+import nand2tetris.ml.Comp.Add
+
 // type Word = Int
 // TODO need an apply method and plus method that wraps around 16 bits
 
@@ -37,21 +39,6 @@ case class State(
 
   import util.chaining.*
 
-  def calcComp(comp: ml.Comp): Word = comp match
-    case ml.Comp(fromMem, zx, nx, zy, ny, f, no) =>
-      val x = d.pipe[Word]: x =>
-        if zx then Word(0) else x
-      .pipe: x =>
-        if nx then ~x else x
-
-      val y = (if fromMem then m else a).pipe: y =>
-        if zy then Word(0) else y
-      .pipe: y =>
-        if ny then ~y else y
-
-      val binop = if f then x + y else x & y
-      if no then ~binop else binop
-
   def setDest(dest: ml.Dest, value: Word): State = dest match
     case ml.Dest(a, d, m) =>
       this.pipe: state =>
@@ -75,7 +62,7 @@ case class State(
   def step: State = currentInstruction match
     case ml.AInst(u15) => setA(u15.toWord).tick
     case ml.CInst(comp, dest, jump) =>
-      val compValue = calcComp(comp)
+      val compValue = comp.calc(d, if comp.a then m else a)
       this.setDest(dest, compValue).movePC(jump, compValue)
 
   // virtual registers r0 - r15
