@@ -44,6 +44,10 @@ enum Reg:
 
 object Reg:
   def parse(raw: String): Reg = Reg.valueOf(raw)
+  def parseRHS(raw: String): (Reg.A.type | Reg.M.type) =  raw match
+    case "A" => Reg.A
+    case "M" => Reg.M
+    case r => throw new IllegalArgumentException(s"Invalid second operand: $r")
 
   val noDest: Set[Reg] = Set.empty
   def parseDest(raw: String): Set[Reg] =

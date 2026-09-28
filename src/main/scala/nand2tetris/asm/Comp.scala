@@ -15,7 +15,7 @@ sealed trait Comp:
     case _ => false
 
   override def toString = this match
-    case Add(left, right) => s"$left+$right"
+    case Add(right) => s"D+$right"
     case And(left, right) => s"$left&$right"
     case Or(left, right) => s"$left|$right"
     case Sub(left, right) => s"$left-$right"
@@ -55,13 +55,12 @@ sealed trait BinOp extends Comp:
   def right: Reg
 
   override def toML: ml.Comp = this match
-    case Add(_, Reg.A) => ml.Comp.default.x.add.y
-    case Add(_, Reg.M) => ml.Comp.default.x.add.y.fromMem
+    case Add(Reg.A) => ml.Comp.default.x.add.y
+    case Add(Reg.M) => ml.Comp.default.x.add.y.fromMem
     case And(_, Reg.A) => ml.Comp.default.x.and.y
     case And(_, Reg.M) => ml.Comp.default.x.and.y.fromMem
     case Or(_, Reg.A) => ml.Comp.default.negX.and.negY.negate
     case Or(_, Reg.M) => ml.Comp.default.negX.and.negY.negate.fromMem
-    case Add(reg, Reg.D) => Add(Reg.D, reg).toML
     case Sub(Reg.D, Reg.A) => ml.Comp.default.negX.add.y.negate
     case Sub(Reg.A, Reg.D) => ml.Comp.default.negY.add.x.negate
     case Sub(Reg.D, Reg.M) => ml.Comp.default.negX.add.y.negate.fromMem
@@ -74,7 +73,8 @@ sealed trait UnOp extends Comp:
 
 // TODO: Scope these inside of Comp
 // TODO: in Add and AND, left is always D (right?)
-case class Add(left: Reg, right: Reg) extends BinOp
+
+case class Add(rhs: Reg.A.type | Reg.M.type) extends Comp
 case class And(left: Reg, right: Reg) extends BinOp
 case class Sub(left: Reg, right: Reg) extends BinOp
 case class Or(left: Reg, right: Reg) extends BinOp
@@ -100,7 +100,7 @@ object Comp:
     case s"$arg-1" => Dec(Reg.parse(arg))
     // TODO: left is always D? Only with Add and And? Maybe normalize operand order wrt D
     // TODO: Always A or M?
-    case s"$lhs+$rhs" => Add(Reg.parse(lhs), Reg.parse(rhs))
+    case s"D+$rhs" => Add(Reg.parseRHS(rhs))
     case s"$lhs-$rhs" => Sub(Reg.parse(lhs), Reg.parse(rhs))
     case s"$lhs&$rhs" => And(Reg.parse(lhs), Reg.parse(rhs))
     case s"$lhs|$rhs" => Or(Reg.parse(lhs), Reg.parse(rhs))
