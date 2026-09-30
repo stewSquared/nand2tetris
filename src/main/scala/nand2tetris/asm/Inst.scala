@@ -39,13 +39,25 @@ object AInst:
         .getOrElse(Symbol.parse(xxx))
     case _ => throw new Exception("A-inst must start with @")
 
-enum Reg:
-  case A, D, M
+sealed trait Reg
 
 object Reg:
-  def parse(raw: String): Reg = Reg.valueOf(raw)
+  case object D extends Reg
+  type D = D.type
+
+  enum RHS extends Reg:
+    case A, M
+
+  export Reg.RHS.{A, M}
+
+  def parseRHS(raw: String): RHS = Reg.RHS.valueOf(raw)
+
+  def parse(raw: String): Reg = raw match
+    case "D" => Reg.D
+    case r => parseRHS(r)
 
   val noDest: Set[Reg] = Set.empty
+
   def parseDest(raw: String): Set[Reg] =
     assert(raw.length <= 3)
     assert(raw.nonEmpty)
