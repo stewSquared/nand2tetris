@@ -2,18 +2,20 @@ package nand2tetris
 package asm
 
 import nand2tetris.ml.{ Dest, Jump }
+import nand2tetris.cpu.U15
 
 sealed trait Inst:
   override def toString: String = this match
-    case AInst(xxx) => s"@$xxx"
+    case AInst.Ref(xxx) => s"@$xxx"
+    case AInst.Val(xxx) => s"@$xxx"
     case CInst(dest, comp, jump) =>
       val destStr = if dest.isNull then "" else dest.toString + "="
       val jumpStr = if jump == Jump.Null then "" else ";" + jump.toString
       s"$destStr$comp$jumpStr"
 
-  def toML: ml.Instruction = this match
-    case AInst(sym: Symbol) => throw new Exception("program not dereferenced") // TODO make this not compile
-    case AInst(adr: Address) => ml.AInst(adr)
+  def toML(using table: SymbolTable): ml.Instruction = this match
+    case ref: AInst.Ref => table.deref(ref)
+    case AInst.Val(c) => ml.AInst(c)
     case CInst(dest, comp, jump) =>
       ml.CInst(
         comp = comp.toML,
@@ -26,16 +28,18 @@ object Inst:
     if raw.startsWith("@") then AInst.parse(raw)
     else CInst.parse(raw)
 
-case class AInst(xxx: Constant | (Symbol | Address)) extends Inst
+sealed trait AInst extends Inst
 
 object AInst:
+  case class Ref(sym: Symbol) extends AInst
+  case class Val(c: U15) extends AInst
+
   def parse(raw: String): AInst = raw match
     case s"@$xxx" =>
-      AInst:
-        xxx.toIntOption.map: n =>
-          Constant.parse(n)
-        .getOrElse(Symbol.parse(xxx))
-    case _ => throw new Exception("A-inst must start with @")
+      // TODO: handle error for bad int
+      xxx.toIntOption.map(n => AInst.Val(U15(n)))
+        .getOrElse(Ref(Symbol.parse(xxx)))
+    case _ => throw new IllegalArgumentException("A-inst must start with @")
 
 case class CInst(
   dest: Dest,

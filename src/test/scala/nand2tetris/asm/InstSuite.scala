@@ -6,6 +6,8 @@ class InstSuite extends munit.FunSuite:
     test(s"$asm should compute D=$expected when a=$a, d=$d, m=$m"):
       val inst = Inst.parse(asm)
 
+      given table: SymbolTable = SymbolTable.empty
+
       val result = cpu.State.init(
         rom = Vector(inst.toML),
         a = cpu.Word(a),
@@ -45,6 +47,8 @@ class InstSuite extends munit.FunSuite:
 
   test("D=D+A should result in machine code that adds"):
     val inst = Inst.parse("D=D+A")
+
+    given table: SymbolTable = SymbolTable.empty
 
     val result = cpu.State.init(
       rom = Vector(inst.toML),
