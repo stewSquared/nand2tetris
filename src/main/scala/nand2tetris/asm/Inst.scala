@@ -1,7 +1,7 @@
 package nand2tetris
 package asm
 
-import nand2tetris.ml.Dest
+import nand2tetris.ml.{ Dest, Jump }
 
 sealed trait Inst:
   override def toString: String = this match
@@ -18,7 +18,7 @@ sealed trait Inst:
       ml.CInst(
         comp = comp.toML,
         dest = dest,
-        jump = jump.toML
+        jump = jump
       )
 
 object Inst:
@@ -37,20 +37,10 @@ object AInst:
         .getOrElse(Symbol.parse(xxx))
     case _ => throw new Exception("A-inst must start with @")
 
-enum Jump:
-  // TODO: Does it make sense to Unify ml.Jump and asm.Jump?
-  case Null, JGT, JEQ, JGE, JLT, JNE, JLE, JMP
-  def toML: ml.Jump = ml.Jump.fromOrdinal(this.ordinal)
-
-object Jump:
-  def parse(raw: String): Jump =
-    require(raw != "Null")
-    Jump.valueOf(raw)
-
 case class CInst(
   dest: Dest,
   comp: Comp,
-  jump: Jump // if null, don't show in string
+  jump: Jump
 ) extends Inst
 
 object CInst:
