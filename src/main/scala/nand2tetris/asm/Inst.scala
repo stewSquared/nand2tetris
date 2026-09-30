@@ -37,23 +37,6 @@ object AInst:
         .getOrElse(Symbol.parse(xxx))
     case _ => throw new Exception("A-inst must start with @")
 
-sealed trait Reg
-
-object Reg:
-  case object D extends Reg
-  type D = D.type
-
-  enum RHS extends Reg:
-    case A, M
-
-  export Reg.RHS.{A, M}
-
-  def parseRHS(raw: String): RHS = Reg.RHS.valueOf(raw)
-
-  def parse(raw: String): Reg = raw match
-    case "D" => Reg.D
-    case r => parseRHS(r)
-
 enum Jump:
   // TODO: Does it make sense to Unify ml.Jump and asm.Jump?
   case Null, JGT, JEQ, JGE, JLT, JNE, JLE, JMP
