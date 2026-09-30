@@ -1,5 +1,7 @@
 package nand2tetris
 
+import nand2tetris.asm.SymbolTable
+
 // For more information on writing tests, see
 // https://scalameta.org/munit/docs/getting-started.html
 class MySuite extends munit.FunSuite {
@@ -33,7 +35,7 @@ class MySuite extends munit.FunSuite {
       val rawAsmL = io.Source.fromResource(asmLFile).getLines().mkString("\n")
       val asmProgram = nand2tetris.asm.Program.parse(rawAsm)
       val table = nand2tetris.asm.symbolTable(asmProgram)
-      val derefProgram = nand2tetris.asm.deref(asmProgram, table)
+      val derefProgram = nand2tetris.asm.deref(asmProgram)(using table)
 
       val expectedDerefProgram = nand2tetris.asm.Program.parse(rawAsmL)
         .collect:
@@ -56,9 +58,11 @@ class MySuite extends munit.FunSuite {
   test("Dereferencing should be idempotent"):
     val rawAsm = io.Source.fromResource("Max.asm").getLines().mkString("\n")
     val asmProgram = nand2tetris.asm.Program.parse(rawAsm)
-    val table = nand2tetris.asm.symbolTable(asmProgram)
-    val derefProgram = nand2tetris.asm.deref(asmProgram, table)
-    val derefAgain = nand2tetris.asm.deref(derefProgram, table)
+
+    given table: SymbolTable = nand2tetris.asm.symbolTable(asmProgram)
+
+    val derefProgram = nand2tetris.asm.deref(asmProgram)
+    val derefAgain = nand2tetris.asm.deref(derefProgram)
 
     assertEquals(derefProgram, derefAgain)
 
