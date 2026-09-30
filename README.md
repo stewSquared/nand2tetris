@@ -1,36 +1,18 @@
 # Emulator Planning
 
+## TODO (immediate)
+- test binary in/out?
+- nicer semantic constructors for ml.CInst
+- fuller Program concept (with labels/comments/lines, etc)
+
 ## Wish List
-- Test assembly translation
-- source assembly test programs
-- maybe a DSL for assembly programs
-- clean up the API for ASM/ML
-- assembly macros
-- ASM line chunking (comment/label/inst)
-
-- run compiled hack binary
-- machine language representation
-- assembler from ASM to binary
-- ASM as a scala DSL or representation?
+- VM Layer
+- Emulation Harness
+- compilation Metadata per machine code line
+  - ASM line chunking (comment/label/inst)
+- (source map, line number, rom/ram/const?)
+- REPL?
+- Debugger
+- web UI
+- maybe a string interpolator for assembly programs? asm"AM=M+1; JGT"
 - option to output text .asm files
-- optional -- go directly from ASM rep to ML rep? (probably go to binary first)
-
-## Architecture
-- computer state
-  - ROM
-  - RAM
-  - I/O
-  - Registers
-    - A
-    - D
-    - PC
-    - M (derived)
-    - current instruction (derived)
-
-## Steps
-
-1. ML Representation
-2. CPU Architecture/State
-3. Assembler
-4. Visuals
-5. Emulator features
