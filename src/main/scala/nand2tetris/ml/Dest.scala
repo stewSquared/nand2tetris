@@ -12,5 +12,5 @@ enum Dest:
   inline def m: Boolean = (toBits & 0b001) == 0b001
 
 object Dest:
-  def parse(raw: String): Dest = Dest.valueOf(raw)
+  def parse(raw: String): Dest = Dest.valueOf(raw.sorted.mkString)
   def fromWord(n: Word): Dest = Dest.fromOrdinal(n.toInt)
