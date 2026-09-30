@@ -52,14 +52,13 @@ case class State(
       val binop = if f then x + y else x & y
       if no then ~binop else binop
 
-  def setDest(dest: ml.Dest, value: Word): State = dest match
-    case ml.Dest(a, d, m) =>
-      this.pipe: state =>
-        if a then state.setA(value) else state
-      .pipe: state =>
-        if d then state.setD(value) else state
-      .pipe: state =>
-        if m then state.setM(value) else state
+  def setDest(dest: ml.Dest, value: Word): State =
+    this.pipe: state =>
+      if dest.a then state.setA(value) else state
+    .pipe: state =>
+      if dest.d then state.setD(value) else state
+    .pipe: state =>
+      if dest.m then state.setM(value) else state
 
   def movePC(jump: ml.Jump, result: Word): State = jump match
     // TODO think about comparing Word with 0? think about .toInt behavior
