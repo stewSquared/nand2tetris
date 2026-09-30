@@ -2,7 +2,7 @@ package nand2tetris
 package asm
 
 sealed trait Comp:
-  import Comp.Arg
+  import Comp.*
 
   // TODO: Using it?
   def fromMem: Boolean = this match
@@ -59,32 +59,8 @@ sealed trait Comp:
       case Sub(Arg.M) => ml.Comp.default.negX.add.y.negate.fromMem
       case SubFrom(Arg.M) => ml.Comp.default.negY.add.x.negate.fromMem
 
-import Comp.Arg
-
-sealed trait UnOp extends Comp:
-  def arg: Arg
-
-sealed trait BinOp extends Comp:
-  def rhs: Arg.RHS
-
-// TODO: Scope these inside of Comp
-case class Add(rhs: Arg.RHS) extends BinOp
-case class And(rhs: Arg.RHS) extends BinOp
-case class Sub(rhs: Arg.RHS) extends BinOp
-case class SubFrom(rhs: Arg.RHS) extends BinOp
-case class Or(rhs: Arg.RHS) extends BinOp
-case class Inc(arg: Arg) extends UnOp
-case class Dec(arg: Arg) extends UnOp
-case class Neg(arg: Arg) extends UnOp
-case class Not(arg: Arg) extends UnOp
-case class Noop(arg: Arg) extends Comp
-sealed trait Const extends Comp
-object Const:
-  case object Zero extends Const
-  case object One extends Const
-  case object NegOne extends Const
-
 object Comp:
+
   sealed trait Arg
 
   object Arg:
@@ -101,6 +77,31 @@ object Comp:
     def parse(raw: String): Arg = raw match
       case "D" => Arg.D
       case r => parseRHS(r)
+
+  sealed trait UnOp extends Comp:
+    def arg: Arg
+
+  sealed trait BinOp extends Comp:
+    def rhs: Arg.RHS
+
+  case class Add(rhs: Arg.RHS) extends BinOp
+  case class And(rhs: Arg.RHS) extends BinOp
+  case class Sub(rhs: Arg.RHS) extends BinOp
+  case class SubFrom(rhs: Arg.RHS) extends BinOp
+  case class Or(rhs: Arg.RHS) extends BinOp
+
+  case class Inc(arg: Arg) extends UnOp
+  case class Dec(arg: Arg) extends UnOp
+  case class Neg(arg: Arg) extends UnOp
+  case class Not(arg: Arg) extends UnOp
+
+  case class Noop(arg: Arg) extends Comp
+
+  sealed trait Const extends Comp
+  object Const:
+    case object Zero extends Const
+    case object One extends Const
+    case object NegOne extends Const
 
   def parse(raw: String): Comp = raw match
     case "0" => Const.Zero
