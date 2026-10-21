@@ -179,12 +179,13 @@ enum ArithmeticLogical extends VMCommand:
             |@$trueLabel
             |D;$jumpCond
             |@SP
-            |A=A-1
+            |A=M-1
             |M=0
             |@$endLabel
             |0;JMP
             |($trueLabel)
-            |A=A-1
+            |@SP
+            |A=M-1
             |M=-1
             |($endLabel)
             |""".stripMargin
