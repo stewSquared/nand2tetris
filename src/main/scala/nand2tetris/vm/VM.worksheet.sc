@@ -5,8 +5,6 @@ import nand2tetris.asm.toML
 // push constant 8
 // add
 
-vm.Push(vm.Segment.Constant, cpu.U15(7)).translate foreach println
-
 val vmCommands = List(
   vm.Push(vm.Segment.Constant, cpu.U15(7)),
   vm.Push(vm.Segment.Constant, cpu.U15(8)),
@@ -19,8 +17,15 @@ val asmEndLoop = asm.Program.parse(
      |  0;JMP""".stripMargin
 )
 
-val asmProgram: asm.Program = vmCommands
-  .flatMap(_.translate) ++ asmEndLoop
+val translation = vmCommands.foldLeft(
+  (Nil: asm.Program) -> vm.VMContext("Foo.vm", 0)
+){
+  case ((lines, ctx), command) =>
+    val (moreLines, nextCtx) = command.translate(ctx)
+    (lines :++ moreLines) -> nextCtx
+}
+
+val asmProgram: asm.Program = translation._1 ++ asmEndLoop
 
 val mlProgram: ml.Program = toML(asmProgram)
 
