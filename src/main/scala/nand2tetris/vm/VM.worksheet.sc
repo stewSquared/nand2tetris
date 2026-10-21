@@ -52,7 +52,7 @@ states(15).sp // 257
 states(19).sp // 257
 
 states(100).sp
-states(100).ram(cpu.U15(257))
+states(100).ram(cpu.U15(256))
 
 
 //
