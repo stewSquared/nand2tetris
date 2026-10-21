@@ -54,11 +54,12 @@ case class State(
 
   def setDest(dest: ml.Dest, value: Word): State =
     this.pipe: state =>
-      if dest.a then state.setA(value) else state
+      if dest.m then state.setM(value) else state
     .pipe: state =>
       if dest.d then state.setD(value) else state
     .pipe: state =>
-      if dest.m then state.setM(value) else state
+      if dest.a then state.setA(value) else state
+    // TODO: optimize multi-dest
 
   def movePC(jump: ml.Jump, result: Word): State = jump match
     // TODO think about comparing Word with 0? think about .toInt behavior
