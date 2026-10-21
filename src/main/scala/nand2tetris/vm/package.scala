@@ -17,11 +17,16 @@ object Segment:
     That -> asm.HardcodedSymbol.THAT,
   )
 
+case class VMContext(
+  filename: String,
+  compareCount: Int
+)
+
 sealed trait VMCommand:
-  def translate: asm.Program
+  def translate(ctx: VMContext): (asm.Program, VMContext)
 
 case class Push(segment: Segment, index: U15) extends VMCommand:
-  override def translate: asm.Program =
+  override def translate(ctx: VMContext): (asm.Program, VMContext) =
     val lines = segment match
       case Constant =>
         s"""|@$index
@@ -70,10 +75,10 @@ case class Push(segment: Segment, index: U15) extends VMCommand:
             |M=D
             |@SP
             |M=M+1""".stripMargin
-    lines.linesIterator.map(asm.Inst.parse).toList
+    lines.linesIterator.map(asm.Inst.parse).toList -> ctx
 
 case class Pop(segment: Segment, index: U15) extends VMCommand:
-  def translate: List[asm.Inst] =
+  def translate(ctx: VMContext): (List[asm.Inst], VMContext) =
     val lines = segment match
       case Constant => ???
       case Local|Argument|This|That =>
@@ -111,12 +116,12 @@ case class Pop(segment: Segment, index: U15) extends VMCommand:
             |D=M
             |@File.$index
             |M=D""".stripMargin
-    lines.linesIterator.map(asm.Inst.parse).toList
+    lines.linesIterator.map(asm.Inst.parse).toList -> ctx
 
 enum ArithmeticLogical extends VMCommand:
   case Add, Sub, Neg, Eq, Gt, Lt, And, Or, Not
 
-  override def translate: asm.Program =
+  override def translate(ctx: VMContext): (asm.Program, VMContext) =
     val lines = this match
       case Add =>
         s"""|@SP
@@ -155,8 +160,13 @@ enum ArithmeticLogical extends VMCommand:
         // x is next value, M
         // M-D := x - y
         // so m-d > 0, then x > y
-        val trueLabel = s"Eq.TRUE$${compareCount}"
-        val endLabel = s"Eq.END$${compareCount}"
+        // TODO: eventually, use monadic state-ish syntax
+        // for
+        //   count <- ctx.freshCount
+        // yield
+        //   assemblyUsingCount(count)
+        val trueLabel = s"Eq.TRUE$$${ctx.compareCount}"
+        val endLabel = s"Eq.END$$${ctx.compareCount}"
         val jumpCond = cmp match
           case Eq => "JEQ"
           case Gt => "JGT"
@@ -179,4 +189,8 @@ enum ArithmeticLogical extends VMCommand:
             |($endLabel)
             |""".stripMargin
 
-    lines.linesIterator.map(asm.Inst.parse).toList
+    val nextCtx = this match
+      case Eq|Gt|Lt => ctx.copy(compareCount = ctx.compareCount + 1)
+      case _ => ctx
+
+    lines.linesIterator.map(asm.Inst.parse).toList -> nextCtx
