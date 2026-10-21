@@ -119,6 +119,12 @@ case class State(
   def ths = ram(U15(3)) // this segment base address
   def tht = ram(U15(4)) // that segment base address
 
+  def setSp(n: Word) = this.copy(ram = ram.updated(U15(0), n))
+  def setLcl(n: Word) = this.copy(ram = ram.updated(U15(1), n))
+  def setArg(n: Word) = this.copy(ram = ram.updated(U15(2), n))
+  def setThs(n: Word) = this.copy(ram = ram.updated(U15(3), n))
+  def setTht(n: Word) = this.copy(ram = ram.updated(U15(4), n))
+
   // screen memory starts at 0x4000 and is 256x512 bits (32x256 words)
   def screen: Vector[Vector[Word]] =
     ram.underlying.slice(0x4000, 0x6000).grouped(32).toVector
