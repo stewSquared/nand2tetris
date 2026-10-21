@@ -114,7 +114,7 @@ case class Pop(segment: Segment, index: U15) extends VMCommand:
         s"""|@SP
             |AM=M-1
             |D=M
-            |@File.$index
+            |@${ctx.filename}.$index
             |M=D""".stripMargin
     lines.linesIterator.map(asm.Inst.parse).toList -> ctx
 
