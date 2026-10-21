@@ -18,10 +18,10 @@ object Segment:
   )
 
 sealed trait VMCommand:
-  def translate: List[asm.Inst]
+  def translate: asm.Program
 
 case class Push(segment: Segment, index: U15) extends VMCommand:
-  override def translate: List[asm.Inst] =
+  override def translate: asm.Program =
     val lines = segment match
       case Constant =>
         s"""|@$index
@@ -116,7 +116,7 @@ case class Pop(segment: Segment, index: U15) extends VMCommand:
 enum ArithmeticLogical extends VMCommand:
   case Add, Sub, Neg, Eq, Gt, Lt, And, Or, Not
 
-  override def translate: List[asm.Inst] =
+  override def translate: asm.Program =
     val lines = this match
       case Add =>
         s"""|@SP
@@ -150,20 +150,33 @@ enum ArithmeticLogical extends VMCommand:
         s"""|@SP
             |A=M-1
             |M=!M""".stripMargin
-      case Eq =>
+      case cmp@(Eq|Gt|Lt) =>
+        // y is top value, saved to D
+        // x is next value, M
+        // M-D := x - y
+        // so m-d > 0, then x > y
+        val trueLabel = s"Eq.TRUE$${compareCount}"
+        val endLabel = s"Eq.END$${compareCount}"
+        val jumpCond = cmp match
+          case Eq => "JEQ"
+          case Gt => "JGT"
+          case Lt => "JLT"
         s"""|@SP
             |AM=M-1
             |D=M
             |A=A-1
             |D=M-D
-            |@IfEq // Surely this is wrong
-            |D;JEQ
+            |@$trueLabel
+            |D;$jumpCond
+            |@SP
+            |A=A-1
             |M=0
-            |@END
+            |@$endLabel
             |0;JMP
-            |IfEq:
-            |M=1
-            |END:
+            |($trueLabel)
+            |A=A-1
+            |M=-1
+            |($endLabel)
             |""".stripMargin
-      case Gt | Lt => ???
+
     lines.linesIterator.map(asm.Inst.parse).toList
