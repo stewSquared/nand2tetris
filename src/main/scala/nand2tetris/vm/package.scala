@@ -194,4 +194,4 @@ enum ArithmeticLogical extends VMCommand:
       case Eq|Gt|Lt => ctx.copy(compareCount = ctx.compareCount + 1)
       case _ => ctx
 
-    lines.linesIterator.map(asm.Inst.parse).toList -> nextCtx
+    lines.linesIterator.map(asm.Line.parse).toList -> nextCtx
