@@ -46,10 +46,10 @@ class VmTranslateSuite extends munit.FunSuite:
 
   // TODO push constant -1 <- is this valid?
   // because arg is an index into segment
-  // testBinop(-1, -1, And, -1)
-  // testBinop(-1, 0, And, 0)
-  testBinop(0, 0, Or, 0)
-  // testBinop(-1, 0, Or, -1)
+  testBinop(7, 5, And, 5)
+  testBinop(2, 5, And, 0)
+  testBinop(0, 5, Or, 5)
+  testBinop(5, 2, Or, 7)
 
   testBinop(5, 2, Eq, 0)
   testBinop(5, 2, Gt, -1)
