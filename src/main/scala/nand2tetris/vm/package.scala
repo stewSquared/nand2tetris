@@ -19,7 +19,8 @@ object Segment:
 
 case class VMContext(
   filename: String,
-  compareCount: Int
+  compareCount: Int,
+  currentFunction: String
 ):
   def incCompareCount = this.copy(compareCount = compareCount + 1)
 
@@ -214,3 +215,25 @@ enum ArithmeticLogical extends VMCommand:
               |M=-1
               |($endLabel)
               |""".stripMargin
+
+case class Label(label: String) extends VMCommand:
+  def translate: Translation[asm.Program] =
+    Translation.inspect(_.currentFunction).map: func =>
+      asm.Program.parse(s"($func.$label)")
+
+case class GoTo(label: String) extends VMCommand:
+  def translate: Translation[asm.Program] =
+    Translation.inspect(_.currentFunction).map: func =>
+      asm.Program.parse:
+        s"""|@$func.$label
+            |0;JMP""".stripMargin
+
+case class IfGoTo(label: String) extends VMCommand:
+  def translate: Translation[asm.Program] =
+    Translation.inspect(_.currentFunction).map: func =>
+      asm.Program.parse:
+        s"""|@SP
+            |AM=M-1
+            |D=M
+            |@$func.$label
+            |D;JGT""".stripMargin
