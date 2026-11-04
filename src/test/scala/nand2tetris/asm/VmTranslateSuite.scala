@@ -25,7 +25,7 @@ class VmTranslateSuite extends munit.FunSuite:
 
       val asmProgram = translation.map(_ ++ asmEndLoop)
 
-      val initContext = vm.VMContext("Foo.vm", 0)
+      val initContext = vm.VMContext("Foo.vm", 0, "foo")
 
       val mlProgram = asm.toML(asmProgram.run(initContext)._1)
 
@@ -62,3 +62,83 @@ class VmTranslateSuite extends munit.FunSuite:
   testBinop(2, 5, Eq, 0)
   testBinop(2, 5, Gt, 0)
   testBinop(2, 5, Lt, -1)
+
+  test("test that goto works"):
+    val vmCommands = List(
+      vm.Push(Segment.Constant, cpu.U15(3)),
+      vm.Push(Segment.Constant, cpu.U15(4)),
+      vm.GoTo("FOO"),
+      vm.ArithmeticLogical.Add,
+      vm.Label("FOO"),
+    )
+
+    // TODO: use `sequence`?
+    val translation = vmCommands.foldLeft(Translation.pure[asm.Program](Nil)):
+      case (txn, command) => for
+        lines <- txn
+        moreLines <- command.translate
+      yield lines ++ moreLines
+
+    val asmEndLoop = asm.Program.parse(
+      """|(END)
+         |  @END
+         |  0;JMP""".stripMargin
+    )
+
+    val asmProgram = translation.map(_ ++ asmEndLoop)
+
+    val initContext = vm.VMContext("Foo.vm", 0, "foo")
+
+    val mlProgram = asm.toML(asmProgram.run(initContext)._1)
+
+    val init = cpu.State
+      .initRom(mlProgram.toVector)
+      .setSp(cpu.Word(0x100))
+
+    val states = LazyList.iterate(init)(_.step)
+    val endState = states(100)
+
+    assertEquals(endState.ram(cpu.U15(0x100)), cpu.Word(3))
+    assertEquals(endState.ram(cpu.U15(0x101)), cpu.Word(4))
+    assertEquals(endState.sp, cpu.Word(0x102))
+
+  test("test that if-goto works"):
+    val vmCommands = List(
+      vm.Push(Segment.Constant, cpu.U15(3)),
+      vm.Push(Segment.Constant, cpu.U15(0)),
+      vm.IfGoTo("FOO"),
+      vm.Push(Segment.Constant, cpu.U15(4)),
+      vm.IfGoTo("FOO"),
+      vm.ArithmeticLogical.Add,
+      vm.Label("FOO"),
+    )
+
+    // TODO: use `sequence`?
+    val translation = vmCommands.foldLeft(Translation.pure[asm.Program](Nil)):
+      case (txn, command) => for
+        lines <- txn
+        moreLines <- command.translate
+      yield lines ++ moreLines
+
+    val asmEndLoop = asm.Program.parse(
+      """|(END)
+         |  @END
+         |  0;JMP""".stripMargin
+    )
+
+    val asmProgram = translation.map(_ ++ asmEndLoop)
+
+    val initContext = vm.VMContext("Foo.vm", 0, "foo")
+
+    val mlProgram = asm.toML(asmProgram.run(initContext)._1)
+
+    val init = cpu.State
+      .initRom(mlProgram.toVector)
+      .setSp(cpu.Word(0x100))
+
+    val states = LazyList.iterate(init)(_.step)
+    val endState = states(100)
+
+    assertEquals(endState.ram(cpu.U15(0x100)), cpu.Word(3))
+    assertEquals(endState.ram(cpu.U15(0x101)), cpu.Word(4))
+    assertEquals(endState.sp, cpu.Word(0x101))
