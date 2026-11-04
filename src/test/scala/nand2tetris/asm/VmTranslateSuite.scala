@@ -16,16 +16,18 @@ class VmTranslateSuite extends munit.FunSuite:
           |  0;JMP""".stripMargin
       )
 
-      val translation = vmCommands.foldLeft(
-        (Nil: asm.Program) -> vm.VMContext("Foo.vm", 0)
-      ){
-        case ((lines, ctx), command) =>
-          val (moreLines, nextCtx) = command.translate(ctx)
-          (lines :++ moreLines) -> nextCtx
-      }
+      // TODO: use `sequence`?
+      val translation = vmCommands.foldLeft(Translation.pure[asm.Program](Nil)):
+        case (txn, command) => for
+          lines <- txn
+          moreLines <- command.translate
+        yield lines ++ moreLines
 
-      val asmProgram: asm.Program = translation._1 ++ asmEndLoop
-      val mlProgram: ml.Program = asm.toML(asmProgram)
+      val asmProgram = translation.map(_ ++ asmEndLoop)
+
+      val initContext = vm.VMContext("Foo.vm", 0)
+
+      val mlProgram = asm.toML(asmProgram.run(initContext)._1)
 
       val init = cpu.State
         .initRom(mlProgram.toVector)
