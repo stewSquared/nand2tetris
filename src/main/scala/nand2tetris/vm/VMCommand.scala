@@ -189,3 +189,116 @@ case class IfGoTo(label: String) extends VMCommand:
             |D=M
             |@$func.$label
             |D;JGT""".stripMargin
+
+case class Call(functionName: String, numArgs: Int) extends VMCommand:
+  private def pushSegmentAddress(segment: Segment) = asm.Program.parse:
+    s"""|@${symbolOf(segment)}
+        |D=M
+        |@SP
+        |AM=M+1
+        |A=A-1
+        |M=D""".stripMargin
+
+
+  def translate: Translation[asm.Program] =
+    for
+      filename <- Translation.inspect(_.filename)
+      caller <- Translation.inspect(_.currentFunction)
+      returnLabel <- Translation.freshLabel(s"$filename.$caller$$RETURN")
+    yield
+      val pushReturnAddress = asm.Program.parse:
+        s"""|@$returnLabel
+            |D=A""".stripMargin
+            // Push D onto stack???
+
+      val repositionArg = asm.Program.parse:
+        // 5 is enough space for returnAddress + lcl/arg/this/that
+        s"""|@SP
+            |D=A
+            |@${5+numArgs}
+            |D=D-A
+            |@SP
+            |M=D""".stripMargin
+
+      val repositionLocal = asm.Program.parse:
+        s"""|@SP
+            |D=M
+            |@LCL
+            |M=D""".stripMargin
+
+      val gotoF = asm.Program.parse:
+        s"""|@$functionName
+            |0;JMP""".stripMargin
+
+      pushReturnAddress
+      ++ pushSegmentAddress(Local)
+      ++ pushSegmentAddress(Argument)
+      ++ pushSegmentAddress(This)
+      ++ pushSegmentAddress(That)
+      ++ repositionArg
+      ++ repositionLocal
+      ++ gotoF
+      ++ asm.Program.parse(s"($returnLabel)")
+
+
+case class Function(functionName: String, numVars: Int) extends VMCommand:
+  def translate: Translation[asm.Program] =
+    for
+      // TODO: think about filename prefix when calling
+      filename <- Translation.inspect(_.filename)
+      entryLabel <- Translation.freshLabel(s"$filename.$functionName")
+    yield
+      val pushes = for _ <- 0 until numVars yield "push 0"
+      asm.Program.parse:
+        (s"($entryLabel)" +: pushes).mkString("\n")
+
+case object Return extends VMCommand:
+  def translate: Translation[asm.Program] =
+
+    val saveFrame = asm.Program.parse:
+      s"""|@LCL // A=3 M=200
+          |D=M  // D=mem[3]
+          |@13  // A=13
+          |M=D  // mem[13] = D""".stripMargin
+
+    val saveReturnAddress = asm.Program.parse:
+      ??? // Not necessary?
+
+    val pointArgAtReturnValue = asm.Program.parse:
+      s"""|@SP
+          |AM=M-1
+          |D=M
+          |@ARG
+          |M=D
+          |""".stripMargin
+
+    val repositionSP = asm.Program.parse:
+      s"""|@ARG
+          |D=M
+          |@SP
+          |M=D+1""".stripMargin
+
+    def popSegment(segment: Segment) = asm.Program.parse:
+      s"""|@13    // a=13 (m=200)
+          |DM=M-1  // mem[13] = 199
+          |@${symbolOf(segment)}
+          |M=D""".stripMargin
+
+    val gotoReturn = asm.Program.parse:
+      s"""|@13
+          |A=M-1 // A = mem[13]-1, M is return address
+          |A=M
+          |0;JMP""".stripMargin
+
+    // NOTE: return label is not visible to callee
+
+    Translation.pure:
+      saveFrame
+      // ++ saveReturnAddress
+      ++ pointArgAtReturnValue
+      ++ repositionSP
+      ++ popSegment(Segment.That)
+      ++ popSegment(Segment.This)
+      ++ popSegment(Segment.Argument)
+      ++ popSegment(Segment.Local)
+      ++ gotoReturn
