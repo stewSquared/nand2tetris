@@ -116,31 +116,21 @@ case class Pop(segment: Segment, index: U15) extends VMCommand:
 enum ArithmeticLogical extends VMCommand:
   case Add, Sub, Neg, Eq, Gt, Lt, And, Or, Not
 
+  private def popYPointX = asm.Program.parse:
+    s"""|@SP
+        |AM=M-1 // point at y, decrement sp
+        |D=M    // D=y
+        |A=A-1  // point at x""".stripMargin
+
   override def translate: Translation[asm.Program] = this match
-    case Add => Translation.emit:
-      s"""|@SP
-          |AM=M-1
-          |D=M
-          |A=A-1
-          |M=D+M""".stripMargin
-    case Sub => Translation.emit:
-      s"""|@SP
-          |AM=M-1
-          |D=M
-          |A=A-1
-          |M=M-D""".stripMargin
-    case And => Translation.emit:
-      s"""|@SP
-          |AM=M-1
-          |D=M
-          |A=A-1
-          |M=D&M""".stripMargin
-    case Or => Translation.emit:
-      s"""|@SP
-          |AM=M-1
-          |D=M
-          |A=A-1
-          |M=D|M""".stripMargin
+    case Add => Translation.pure:
+      popYPointX :+ asm.Inst.parse("M=D+M")
+    case Sub => Translation.pure:
+      popYPointX :+ asm.Inst.parse("M=M-D")
+    case And => Translation.pure:
+      popYPointX :+ asm.Inst.parse("M=D&M")
+    case Or => Translation.pure:
+      popYPointX :+ asm.Inst.parse("M=D|M")
     case Neg => Translation.emit:
       s"""|@SP
           |A=M-1
@@ -162,12 +152,8 @@ enum ArithmeticLogical extends VMCommand:
           case Eq => "JEQ"
           case Gt => "JGT"
           case Lt => "JLT"
-        asm.Program.parse:
-          s"""|@SP
-              |AM=M-1
-              |D=M
-              |A=A-1
-              |D=M-D
+        popYPointX ++ asm.Program.parse:
+          s"""|D=M-D
               |@$trueLabel
               |D;$jumpCond
               |@SP
