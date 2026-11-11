@@ -17,7 +17,13 @@ object Program:
     raw.linesIterator.filter(_.strip.nonEmpty).toList.map(Line.parse)
 
 object Line:
+  // TODO: List[Line]
   def parse(raw: String): Line = raw.strip() match
     case s"//$comment" => Comment(comment)
     case s"($name)" => Label(UserSymbol(name))
+    case s"($name) $inst //$comment" => ???
+    case s"($name) $inst" => ???
+    case s"$rawInst //$comment" =>
+      // TODO: emit comment
+      Inst.parse(rawInst)
     case rawInst => Inst.parse(rawInst)
