@@ -22,54 +22,47 @@ sealed trait VMCommand:
   def translate: Translation[asm.Program]
 
 case class Push(segment: Segment, index: U15) extends VMCommand:
+  def pushD: asm.Program = asm.Program.parse:
+    s"""|// push D to stack
+        |@SP
+        |AM=M+1 // increments stack, points past stack
+        |A=A-1 // point at value stored on stack
+        |M=D""".stripMargin
+
   override def translate: Translation[asm.Program] = segment match
-    case Constant => Translation.emit:
-      s"""|@$index
-          |D=A
-          |@SP
-          |A=M
-          |M=D
-          |@SP
-          |M=M+1""".stripMargin
-    case Local|Argument|This|That => Translation.emit:
-      s"""|@${Segment.symbolOf(segment)}
-          |D=M
-          |@$index
-          |A=D+A
-          |D=M
-          |@SP
-          |A=M
-          |M=D
-          |@SP
-          |M=M+1""".stripMargin
-    case Pointer => Translation.emit:
-      import asm.HardcodedSymbol.{THIS, THAT}
-      require(index.toInt == 0 || index.toInt == 1, s"pointer $index")
-      val symbol = if index.toInt == 0 then THIS else THAT
-      s"""|@$symbol
-          |D=M
-          |@SP
-          |A=M
-          |M=D
-          |@SP
-          |M=M+1""".stripMargin
-    case Temp => Translation.emit:
+    case Constant => Translation.pure:
+      val writeConstantToD = asm.Program.parse:
+        s"""|@$index
+            |D=A""".stripMargin
+      writeConstantToD ++ pushD
+    case Local|Argument|This|That => Translation.pure:
+      val writeSegmentItoD = asm.Program.parse:
+        s"""|// save segment i to D
+            |@${Segment.symbolOf(segment)} // A=1/2/3/4
+            |D=M // D points to the base address of segment
+            |@$index
+            |A=D+A // A points to base+index of segment
+            |D=M"""
+      writeSegmentItoD ++ pushD
+    case Pointer => Translation.pure:
+      val writePointerToD = asm.Program.parse:
+        import asm.HardcodedSymbol.{THIS, THAT}
+        require(index.toInt == 0 || index.toInt == 1, s"pointer $index")
+        val symbol = if index.toInt == 0 then THIS else THAT
+        s"""|@$symbol
+            |D=M""".stripMargin
+      writePointerToD ++ pushD
+    case Temp => Translation.pure:
       require((0 to 7).contains(index), s"temp $index")
-      s"""|@R${index.toInt+5}
-          |D=M
-          |@SP
-          |A=M
-          |M=D
-          |@SP
-          |M=M+1""".stripMargin
-    case Static => Translation.emit:
-      s"""|@File.$index
-          |D=M
-          |@SP
-          |A=M
-          |M=D
-          |@SP
-          |M=M+1""".stripMargin
+      val writeTempToD = asm.Program.parse:
+        s"""|@R${index.toInt+5}
+            |D=M""".stripMargin
+      writeTempToD ++ pushD
+    case Static => Translation.pure:
+      val writeStaticToD = asm.Program.parse:
+        s"""|@File.$index
+            |D=M""".stripMargin
+      writeStaticToD ++ pushD
 
 case class Pop(segment: Segment, index: U15) extends VMCommand:
   def translate: Translation[asm.Program] = segment match
