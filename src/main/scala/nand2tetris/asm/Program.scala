@@ -23,7 +23,7 @@ object Line:
     case s"($name)" => Label(UserSymbol(name))
     case s"($name) $inst //$comment" => ???
     case s"($name) $inst" => ???
-    case s"$rawInst //$comment" =>
+    case s"$rawInst//$comment" =>
       // TODO: emit comment
-      Inst.parse(rawInst)
+      Inst.parse(rawInst.stripLeading.stripTrailing)
     case rawInst => Inst.parse(rawInst)
