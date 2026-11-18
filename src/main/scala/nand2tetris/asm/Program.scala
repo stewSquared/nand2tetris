@@ -1,9 +1,7 @@
 package nand2tetris
 package asm
 
-type Comment = String
-object Comment:
-  def apply(s: String): Comment = s
+case class Comment(value: String)
 
 case class Label(sym: UserSymbol)
 
