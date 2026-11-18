@@ -225,9 +225,13 @@ case class Call(functionName: String, numArgs: Int) extends VMCommand:
       returnLabel <- Translation.freshLabel(s"$functionName$$RETURN")
     yield
       val pushReturnAddress = asm.Program.parse:
-        s"""|@$returnLabel
-            |D=A""".stripMargin
-            // Push D onto stack???
+        s"""|// push return address
+            |@$returnLabel
+            |D=A
+            |@SP
+            |AM=M+1
+            |A=A-1
+            |M=D""".stripMargin
 
       val repositionArg = asm.Program.parse:
         s"""|// reposition arg
