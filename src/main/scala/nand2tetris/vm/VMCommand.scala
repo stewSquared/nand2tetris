@@ -292,9 +292,15 @@ case object Return extends VMCommand:
           |M=D  // mem[13] = D""".stripMargin
 
     val saveReturnAddress = asm.Program.parse:
-      ??? // Not necessary?
+      s"""|// save return address
+          |@13
+          |D=M
+          |@5
+          |D=D-A
+          |@14
+          |M=D""".stripMargin
 
-    val pointArgAtReturnValue = asm.Program.parse:
+    val storeReturnValueAtArg = asm.Program.parse:
       s"""|// reposition ARG
           |@SP
           |AM=M-1
@@ -318,17 +324,18 @@ case object Return extends VMCommand:
           |M=D""".stripMargin
 
     val gotoReturn = asm.Program.parse:
-      s"""|@13
-          |A=M-1 // A = mem[13]-1, M is return address
-          |A=M
+      s"""|// goto return
+          |@14 // A=14 M=262
+          |A=M // A=262 M=96
+          |A=M // A=96
           |0;JMP""".stripMargin
 
     // NOTE: return label is not visible to callee
 
     Translation.pure:
       saveFrame
-      // ++ saveReturnAddress
-      ++ pointArgAtReturnValue
+      ++ saveReturnAddress
+      ++ storeReturnValueAtArg
       ++ repositionSP
       ++ popSegment(Segment.That)
       ++ popSegment(Segment.This)
