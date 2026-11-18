@@ -55,7 +55,7 @@ case class Push(segment: Segment, index: U15) extends VMCommand:
       writeConstantToD ++ pushD
     case Local|Argument|This|That => Translation.pure:
       val writeSegmentItoD = asm.Program.parse:
-        s"""|// save segment i to D
+        s"""|// save $segment $index to D
             |@${Segment.symbolOf(segment)} // A=1/2/3/4
             |D=M // D points to the base address of segment
             |@$index
@@ -210,7 +210,8 @@ case class IfGoTo(label: String) extends VMCommand:
 
 case class Call(functionName: String, numArgs: Int) extends VMCommand:
   private def pushSegmentAddress(segment: Segment) = asm.Program.parse:
-    s"""|@${symbolOf(segment)}
+    s"""|// push $segment address
+        |@${symbolOf(segment)}
         |D=M
         |@SP
         |AM=M+1
@@ -229,8 +230,8 @@ case class Call(functionName: String, numArgs: Int) extends VMCommand:
             // Push D onto stack???
 
       val repositionArg = asm.Program.parse:
-        // 5 is enough space for returnAddress + lcl/arg/this/that
-        s"""|@SP
+        s"""|// reposition arg
+            |@SP
             |D=A
             |@${5+numArgs}
             |D=D-A
@@ -238,14 +239,21 @@ case class Call(functionName: String, numArgs: Int) extends VMCommand:
             |M=D""".stripMargin
 
       val repositionLocal = asm.Program.parse:
-        s"""|@SP
+        s"""|// repostion local
+            |@SP
             |D=M
             |@LCL
             |M=D""".stripMargin
 
-      val gotoF = asm.Program.parse:
-        s"""|@$functionName
+      val jumpToFunctionEntrypoint = asm.Program.parse:
+        s"""|// jump to $functionName entrypoint
+            |@$functionName
             |0;JMP""".stripMargin
+
+      val injectReturnLabel =
+        asm.Program.parse:
+          s"""|//return to $$current from $functionName
+              |($returnLabel)""".stripMargin
 
       pushReturnAddress
       ++ pushSegmentAddress(Local)
@@ -254,9 +262,8 @@ case class Call(functionName: String, numArgs: Int) extends VMCommand:
       ++ pushSegmentAddress(That)
       ++ repositionArg
       ++ repositionLocal
-      ++ gotoF
-      ++ asm.Program.parse(s"($returnLabel)")
-
+      ++ jumpToFunctionEntrypoint
+      ++ injectReturnLabel
 
 case class Function(functionName: String, numVars: Int) extends VMCommand:
   def translate: Translation[asm.Program] =
@@ -274,7 +281,8 @@ case object Return extends VMCommand:
   def translate: Translation[asm.Program] =
 
     val saveFrame = asm.Program.parse:
-      s"""|@LCL // A=3 M=200
+      s"""|// save frame
+          |@LCL // A=3 M=200
           |D=M  // D=mem[3]
           |@13  // A=13
           |M=D  // mem[13] = D""".stripMargin
@@ -283,7 +291,8 @@ case object Return extends VMCommand:
       ??? // Not necessary?
 
     val pointArgAtReturnValue = asm.Program.parse:
-      s"""|@SP
+      s"""|// reposition ARG
+          |@SP
           |AM=M-1
           |D=M
           |@ARG
@@ -291,13 +300,15 @@ case object Return extends VMCommand:
           |""".stripMargin
 
     val repositionSP = asm.Program.parse:
-      s"""|@ARG
+      s"""|// reposition SP
+          |@ARG
           |D=M
           |@SP
           |M=D+1""".stripMargin
 
     def popSegment(segment: Segment) = asm.Program.parse:
-      s"""|@13    // a=13 (m=200)
+      s"""|// pop $segment
+          |@13     // a=13 (m=200)
           |DM=M-1  // mem[13] = 199
           |@${symbolOf(segment)}
           |M=D""".stripMargin
