@@ -60,7 +60,7 @@ case class Push(segment: Segment, index: U15) extends VMCommand:
             |D=M // D points to the base address of segment
             |@$index
             |A=D+A // A points to base+index of segment
-            |D=M"""
+            |D=M""".stripMargin
       writeSegmentItoD ++ pushD
     case Pointer => Translation.pure:
       val writePointerToD = asm.Program.parse:
