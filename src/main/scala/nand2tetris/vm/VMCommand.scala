@@ -232,10 +232,10 @@ case class Call(functionName: String, numArgs: Int) extends VMCommand:
       val repositionArg = asm.Program.parse:
         s"""|// reposition arg
             |@SP
-            |D=A
+            |D=M
             |@${5+numArgs}
             |D=D-A
-            |@SP
+            |@ARG
             |M=D""".stripMargin
 
       val repositionLocal = asm.Program.parse:
