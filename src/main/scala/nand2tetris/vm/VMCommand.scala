@@ -220,9 +220,8 @@ case class Call(functionName: String, numArgs: Int) extends VMCommand:
 
   def translate: Translation[asm.Program] =
     for
-      filename <- Translation.inspect(_.filename)
       caller <- Translation.inspect(_.currentFunction)
-      returnLabel <- Translation.freshLabel(s"$filename.$caller$$RETURN")
+      returnLabel <- Translation.freshLabel(s"$functionName$$RETURN")
     yield
       val pushReturnAddress = asm.Program.parse:
         s"""|@$returnLabel
@@ -261,14 +260,9 @@ case class Call(functionName: String, numArgs: Int) extends VMCommand:
 
 case class Function(functionName: String, numVars: Int) extends VMCommand:
   def translate: Translation[asm.Program] =
-    for
-      // TODO: think about filename prefix when calling
-      filename <- Translation.inspect(_.filename)
-      entryLabel <- Translation.freshLabel(s"$filename.$functionName")
-    yield
-      val pushes = for _ <- 0 until numVars yield "push 0"
-      asm.Program.parse:
-        (s"($entryLabel)" +: pushes).mkString("\n")
+    val pushes = for _ <- 0 until numVars yield "push 0"
+    Translation.emit:
+      (s"($functionName)" +: pushes).mkString("\n")
 
 case object Return extends VMCommand:
   def translate: Translation[asm.Program] =
