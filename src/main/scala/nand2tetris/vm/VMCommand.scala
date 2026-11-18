@@ -21,6 +21,24 @@ sealed trait VMCommand:
   // def translate(ctx: VMContext): (asm.Program, VMContext)
   def translate: Translation[asm.Program]
 
+object VMCommand:
+  def parse(raw: String): VMCommand = raw.strip() match
+    case s"push $s $i" =>
+      val segment = Segment.valueOf(s.capitalize)
+      val index = U15(i.toInt)
+      Push(segment, index)
+    case s"pop $s $i" =>
+      val segment = Segment.valueOf(s.capitalize)
+      val index = U15(i.toInt)
+      Pop(segment, index)
+    case s"label $name" => Label(name)
+    case s"goto $label" => GoTo(label)
+    case s"if-goto $label" => IfGoTo(label)
+    case s"function $name $numVars" => Function(name, numVars.toInt)
+    case s"call $name $numArgs" => Call(name, numArgs.toInt)
+    case s"return" => Return
+    case unary => ArithmeticLogical.valueOf(unary.capitalize)
+
 case class Push(segment: Segment, index: U15) extends VMCommand:
   def pushD: asm.Program = asm.Program.parse:
     s"""|// push D to stack
