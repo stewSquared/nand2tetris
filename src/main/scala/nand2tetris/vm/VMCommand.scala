@@ -304,10 +304,10 @@ case object Return extends VMCommand:
       s"""|// reposition ARG
           |@SP
           |AM=M-1
-          |D=M
+          |D=M // <- return value
           |@ARG
-          |M=D
-          |""".stripMargin
+          |A=M
+          |M=D""".stripMargin
 
     val repositionSP = asm.Program.parse:
       s"""|// reposition SP
