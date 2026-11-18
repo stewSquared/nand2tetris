@@ -260,7 +260,13 @@ case class Call(functionName: String, numArgs: Int) extends VMCommand:
 
 case class Function(functionName: String, numVars: Int) extends VMCommand:
   def translate: Translation[asm.Program] =
-    val pushes = for _ <- 0 until numVars yield "push 0"
+    val pushes = for
+      _ <- 0 until numVars
+      line <- """|@SP
+                 |AM=M+1
+                 |A=A-1
+                 |M=0""".stripMargin.linesIterator
+    yield line
     Translation.emit:
       (s"($functionName)" +: pushes).mkString("\n")
 
