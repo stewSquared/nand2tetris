@@ -3,17 +3,16 @@ package vm
 
 class VmTranslateSuite extends munit.FunSuite:
   def testBinop(x: Int, y: Int, op: ArithmeticLogical, expected: Int): Unit =
-    test(s"$x $y $op = $expected"):
-      val vmCommands = List(
-        vm.Push(vm.Segment.Constant, cpu.U15(x)),
-        vm.Push(vm.Segment.Constant, cpu.U15(y)),
-        op
-      )
+    test(s"push constant $x; push constant $y; $op = $expected"):
+      val vmCommands =
+        s"""|push constant $x
+            |push constant $y
+            |$op""".stripMargin.linesIterator.map(VMCommand.parse)
 
       val asmEndLoop = asm.Program.parse(
         """|(END)
-          |  @END
-          |  0;JMP""".stripMargin
+           |  @END
+           |  0;JMP""".stripMargin
       )
 
       // TODO: use `sequence`?
@@ -103,15 +102,14 @@ class VmTranslateSuite extends munit.FunSuite:
     assertEquals(endState.sp, cpu.Word(0x102))
 
   test("test that if-goto works"):
-    val vmCommands = List(
-      vm.Push(Segment.Constant, cpu.U15(3)),
-      vm.Push(Segment.Constant, cpu.U15(0)),
-      vm.IfGoTo("FOO"),
-      vm.Push(Segment.Constant, cpu.U15(4)),
-      vm.IfGoTo("FOO"),
-      vm.ArithmeticLogical.Add,
-      vm.Label("FOO"),
-    )
+    val vmCommands =
+      s"""|push constant 3
+          |push constant 0
+          |if-goto FOO
+          |push constant 4
+          |if-goto FOO
+          |add
+          |label foo""".stripMargin.linesIterator.map(vm.VMCommand.parse)
 
     // TODO: use `sequence`?
     val translation = vmCommands.foldLeft(Translation.pure[asm.Program](Nil)):
