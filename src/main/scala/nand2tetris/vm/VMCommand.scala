@@ -43,8 +43,8 @@ case class Push(segment: Segment, index: U15) extends VMCommand:
   def pushD: asm.Program = asm.Program.parse:
     s"""|// push D to stack
         |@SP
-        |AM=M+1 // increments stack, points past stack
-        |A=A-1 // point at value stored on stack
+        |AM=M+1 // increments stack, points at next space
+        |A=A-1 // point at top value
         |M=D""".stripMargin
 
   override def translate: Translation[asm.Program] = segment match
@@ -56,7 +56,7 @@ case class Push(segment: Segment, index: U15) extends VMCommand:
     case Local|Argument|This|That => Translation.pure:
       val writeSegmentItoD = asm.Program.parse:
         s"""|// save $segment $index to D
-            |@${Segment.symbolOf(segment)} // A=1/2/3/4
+            |@${Segment.symbolOf(segment)}
             |D=M // D points to the base address of segment
             |@$index
             |A=D+A // A points to base+index of segment
@@ -123,8 +123,8 @@ case class Pop(segment: Segment, index: U15) extends VMCommand:
       //       |D=M
       //       |@${filename}.$index
       //       |M=D""".stripMargin
-      Translation.inspect(_.filename).flatMap: filename =>
-        Translation.emit:
+      Translation.inspect(_.filename).map: filename =>
+        asm.Program.parse:
           s"""|@SP
               |AM=M-1
               |D=M
@@ -218,7 +218,6 @@ case class Call(functionName: String, numArgs: Int) extends VMCommand:
         |A=A-1
         |M=D""".stripMargin
 
-
   def translate: Translation[asm.Program] =
     for
       caller <- Translation.inspect(_.currentFunction)
@@ -256,7 +255,7 @@ case class Call(functionName: String, numArgs: Int) extends VMCommand:
 
       val injectReturnLabel =
         asm.Program.parse:
-          s"""|//return to $$current from $functionName
+          s"""|//return to $caller from $functionName
               |($returnLabel)""".stripMargin
 
       pushReturnAddress
@@ -271,37 +270,38 @@ case class Call(functionName: String, numArgs: Int) extends VMCommand:
 
 case class Function(functionName: String, numVars: Int) extends VMCommand:
   def translate: Translation[asm.Program] =
-    val pushes = for
-      _ <- 0 until numVars
-      line <- """|@SP
-                 |AM=M+1
-                 |A=A-1
-                 |M=0""".stripMargin.linesIterator
-    yield line
-    Translation.emit:
-      (s"($functionName)" +: pushes).mkString("\n")
+    val initVars =
+      val push0 = asm.Program.parse:
+        """|// init var (push 0)
+           |@SP
+           |AM=M+1
+           |A=A-1
+           |M=0""".stripMargin
+      (0 until numVars).map(_ => push0).foldLeft(Nil)(_ ++ _)
+    Translation.pure:
+      val entryLabel = asm.Program.parse(s"($functionName)")
+      entryLabel ++ initVars
 
 case object Return extends VMCommand:
   def translate: Translation[asm.Program] =
-
     val saveFrame = asm.Program.parse:
       s"""|// save frame
-          |@LCL // A=3 M=200
-          |D=M  // D=mem[3]
-          |@13  // A=13
-          |M=D  // mem[13] = D""".stripMargin
+          |@LCL
+          |D=M
+          |@13
+          |M=D""".stripMargin
 
     val saveReturnAddress = asm.Program.parse:
       s"""|// save return address
           |@13
           |D=M
           |@5
-          |D=D-A
+          |D=D-A // D = address of return address
           |@14
           |M=D""".stripMargin
 
     val storeReturnValueAtArg = asm.Program.parse:
-      s"""|// reposition ARG
+      s"""|// store return value at arg[0]
           |@SP
           |AM=M-1
           |D=M // <- return value
@@ -318,16 +318,16 @@ case object Return extends VMCommand:
 
     def popSegment(segment: Segment) = asm.Program.parse:
       s"""|// pop $segment
-          |@13     // a=13 (m=200)
-          |DM=M-1  // mem[13] = 199
+          |@13
+          |DM=M-1 // D = address of saved $segment base address
           |@${symbolOf(segment)}
           |M=D""".stripMargin
 
     val gotoReturn = asm.Program.parse:
       s"""|// goto return
-          |@14 // A=14 M=262
-          |A=M // A=262 M=96
-          |A=M // A=96
+          |@14
+          |A=M // address of return address
+          |A=M // return address
           |0;JMP""".stripMargin
 
     // NOTE: return label is not visible to callee
