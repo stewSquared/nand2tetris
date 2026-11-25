@@ -20,6 +20,10 @@ case class Translation[A](run: VMContext => (A, VMContext)):
     val (a, nextCtx) = run(ctx)
     f(a).run(nextCtx)
 
+  def changeFile(newFilename: String) = Translation[A]: ctx =>
+    val (a, nextCtx) = run(ctx)
+    a -> nextCtx.copy(filename = newFilename )
+
 case object Translation:
   def pure[A](a: A): Translation[A] = Translation(ctx => (a -> ctx))
   def emit(assemblyLines: String): Translation[asm.Program] =
