@@ -296,7 +296,8 @@ case object Return extends VMCommand:
           |@13
           |D=M
           |@5
-          |D=D-A // D = address of return address
+          |A=D-A // A = address of return address
+          |D=M   // D = return address
           |@14
           |M=D""".stripMargin
 
@@ -326,8 +327,7 @@ case object Return extends VMCommand:
     val gotoReturn = asm.Program.parse:
       s"""|// goto return
           |@14
-          |A=M // address of return address
-          |A=M // return address
+          |A=M
           |0;JMP""".stripMargin
 
     // NOTE: return label is not visible to callee
