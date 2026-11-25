@@ -320,7 +320,8 @@ case object Return extends VMCommand:
     def popSegment(segment: Segment) = asm.Program.parse:
       s"""|// pop $segment
           |@13
-          |DM=M-1 // D = address of saved $segment base address
+          |AM=M-1 // A = address of saved $segment base address
+          |D=M    // D = $segment base address
           |@${symbolOf(segment)}
           |M=D""".stripMargin
 
