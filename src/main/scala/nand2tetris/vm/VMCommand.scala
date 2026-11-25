@@ -206,7 +206,9 @@ case class IfGoTo(label: String) extends VMCommand:
             |AM=M-1
             |D=M
             |@$func.$label
-            |D;JGT""".stripMargin
+            |D;JLT""".stripMargin
+            // JLT because -1 is true
+            // TODO: smells fishy
 
 case class Call(functionName: String, numArgs: Int) extends VMCommand:
   private def pushSegmentAddress(segment: Segment) = asm.Program.parse:
