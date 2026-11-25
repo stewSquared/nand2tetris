@@ -1,7 +1,7 @@
 package nand2tetris
 package asm
 
-@main def assemble(asmFile: String): Unit =
+def assemble(asmFile: String): Unit =
   val rawAsm = io.Source.fromFile(asmFile).getLines().mkString("\n")
   val asmProgram = nand2tetris.asm.Program.parse(rawAsm)
   val mlProgram = nand2tetris.asm.toML(asmProgram)
