@@ -10,30 +10,26 @@ val vmCommands: List[vm.VMCommand] =
   val vmCode =
     // s"""|push constant 1
     //     |push constant 1""".stripMargin
-    s"""|function Main.main 0
-        |  push constant 1
-        |  call Main.identity 1
-        |  return
-        |function Main.identity 0
-        |  push argument 0
-        |  push constant 1
-        |  add
-        |  return""".stripMargin
-
-    // s"""|push constant 3
-    //     |call identity 1
-    //     |function identity 0
-    //     |  push argument 0
-    //     |  return""".stripMargin
-
-    // s"""|function double 1
-    //     |  push argument 0
-    //     |  push argument 0
-    //     |  pop local 0
+    // s"""|function Main.main 0
+    //     |  push constant 5
+    //     |  call Main.increment 1
     //     |  return
-    //     |push constant 3
-    //     |call double 1
-    //     |call double 1""".stripMargin
+    //     |function Main.increment 0
+    //     |  push argument 0
+    //     |  push constant 1
+    //     |  add
+    //     |  return""".stripMargin
+    //
+    s"""|function double 0
+        |  push argument 0
+        |  push argument 0
+        |  add
+        |  return
+        |function Main.main 0
+        |  push constant 3
+        |  call double 1
+        |  call double 1
+        |  return""".stripMargin
   vmCode.linesIterator.map(vm.VMCommand.parse).toList
 
 def translate(vmCommands: List[vm.VMCommand]): asm.Program =
@@ -93,7 +89,7 @@ def printProgram(): Unit =
 
 printProgram()
 
-states.zipWithIndex.take(250).foreach: (state, clock) =>
+states.zipWithIndex.take(500).foreach: (state, clock) =>
   val pointers = state.ram.underlying.slice(0, 5)
   val temp = state.ram.underlying.slice(13, 15)
   val stack = state.ram.underlying.slice(256, state.sp.toInt)
