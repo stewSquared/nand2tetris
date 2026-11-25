@@ -6,60 +6,30 @@ s"""|int double(int x) {
     |  return d;
     |}""".stripMargin
 
-val vmCommands: List[vm.VMCommand] =
-  val vmCode =
-    // s"""|push constant 1
-    //     |push constant 1""".stripMargin
-    // s"""|function Main.main 0
-    //     |  push constant 5
-    //     |  call Main.increment 1
-    //     |  return
-    //     |function Main.increment 0
-    //     |  push argument 0
-    //     |  push constant 1
-    //     |  add
-    //     |  return""".stripMargin
-    //
-    s"""|function double 0
+val mainSource =
+  val rawCode =
+    s"""|function Main.main 0
+        |  push constant 3
+        |  call Double.double 1
+        |  call Double.double 1
+        |  return""".stripMargin
+  val commands = rawCode.linesIterator.map(vm.VMCommand.parse).toVector
+  vm.Source("Main", commands)
+
+val doubleSource =
+  val rawCode =
+    s"""|function Double.double 0
         |  push argument 0
         |  push argument 0
         |  add
-        |  return
-        |function Main.main 0
-        |  push constant 3
-        |  call double 1
-        |  call double 1
         |  return""".stripMargin
-  vmCode.linesIterator.map(vm.VMCommand.parse).toList
+  val commands = rawCode.linesIterator.map(vm.VMCommand.parse).toVector
+  vm.Source("Double", commands.toVector)
 
-def translate(vmCommands: List[vm.VMCommand]): asm.Program =
-  val bootstrap: vm.Translation[asm.Program] =
-    val setSP = asm.Program.parse:
-      """|@256
-         |D=A
-         |@SP
-         |// M=D
-         |// @LCL
-         |M=D""".stripMargin
-    val endLoop = asm.Program.parse:
-      """|  @END
-         |(END)
-         |  0;JMP""".stripMargin
-    vm.Call("Main.main", 0).translate.map: callMain =>
-      setSP ++ callMain ++ endLoop
+mainSource.code foreach println
 
-  val translation = vmCommands.foldLeft(bootstrap):
-    case (txn, command) => for
-      lines <- txn
-      moreLines <- command.translate
-      comment = asm.Comment(s"translating $command")
-    yield lines ++ (comment +: moreLines)
-
-  val initContext = vm.VMContext("Main", 0, "$NILL")
-
-  translation.run(initContext)._1
-
-val asmProgram = translate(vmCommands)
+val asmProgram =
+  Translator(List(mainSource, doubleSource)).translate
 
 val asmInstructions = asmProgram.collect:
   case inst: asm.Inst => inst
@@ -68,7 +38,9 @@ val symbolTable =  asm.symbolTable(asmProgram)
 
 symbolTable.underlying foreach println
 
-val endAddress = symbolTable(asm.UserSymbol("END"))
+// val endAddress = symbolTable(asm.UserSymbol("END"))
+
+val endAddress = symbolTable(asm.UserSymbol(".END_LOOP"))
 
 val rom = asm.toML(asmProgram).toVector
 
