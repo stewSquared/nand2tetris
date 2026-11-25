@@ -9,27 +9,56 @@ s"""|int double(int x) {
 val mainSource =
   val rawCode =
     s"""|function Main.main 0
-        |  push constant 3
-        |  call Double.double 1
-        |  call Double.double 1
+        |  push constant 10
+        |  call Fib.main 1
         |  return""".stripMargin
   val commands = rawCode.linesIterator.map(vm.VMCommand.parse).toVector
   vm.Source("Main", commands)
 
-val doubleSource =
+// def fib(n: Int): Int =
+//   if n <= 1 then n
+//   else fib(n - 1) + fib(n - 2)
+
+def fib(n: Int): Int = fib(0, 1, n)
+
+def fib(a: Int, b: Int, n: Int): Int =
+  if (n == 0) then a
+  else fib(b, a+b, n-1)
+
+(0 to 10).map(fib) foreach println
+
+val fibSource =
   val rawCode =
-    s"""|function Double.double 0
+    s"""|function Fib.main 0
+        |  push constant 0
+        |  push constant 1
         |  push argument 0
+        |  call Fib.fib 3
+        |  return
+        |function Fib.fib 0
+        |  push argument 2
+        |  push constant 0
+        |  eq
+        |  if-goto BASE
+        |  push argument 1
         |  push argument 0
+        |  push argument 1
         |  add
+        |  push argument 2
+        |  push constant 1
+        |  sub
+        |  call Fib.fib 3
+        |  return
+        |  label BASE
+        |  push argument 0
         |  return""".stripMargin
   val commands = rawCode.linesIterator.map(vm.VMCommand.parse).toVector
-  vm.Source("Double", commands.toVector)
+  vm.Source("Fib", commands.toVector)
 
 mainSource.code foreach println
 
 val asmProgram =
-  Translator(List(mainSource, doubleSource)).translate
+  Translator(List(mainSource, fibSource)).translate
 
 val asmInstructions = asmProgram.collect:
   case inst: asm.Inst => inst
@@ -61,7 +90,7 @@ def printProgram(): Unit =
 
 printProgram()
 
-states.zipWithIndex.take(500).foreach: (state, clock) =>
+states.zipWithIndex.take(3000).foreach: (state, clock) =>
   val pointers = state.ram.underlying.slice(0, 5)
   val temp = state.ram.underlying.slice(13, 15)
   val stack = state.ram.underlying.slice(256, state.sp.toInt)
