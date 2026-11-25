@@ -83,6 +83,10 @@ case class Push(segment: Segment, index: U15) extends VMCommand:
       writeStaticToD ++ pushD
 
 case class Pop(segment: Segment, index: U15) extends VMCommand:
+  private val popToD: String =
+    """|@SP
+       |AM=M-1
+       |D=M""".stripMargin
   def translate: Translation[asm.Program] = segment match
     case Constant => ???
     case Local|Argument|This|That => Translation.emit:
@@ -92,9 +96,7 @@ case class Pop(segment: Segment, index: U15) extends VMCommand:
           |D=D+A
           |@R13
           |M=D
-          |@SP
-          |AM=M-1
-          |D=M
+          |$popToD
           |@R13
           |A=M
           |M=D""".stripMargin
@@ -102,32 +104,18 @@ case class Pop(segment: Segment, index: U15) extends VMCommand:
       import asm.HardcodedSymbol.{THIS, THAT}
       require(index.toInt == 0 || index.toInt == 1, s"pointer $index")
       val symbol = if index.toInt == 0 then THIS else THAT
-      s"""|@SP
-          |AM=M-1
-          |D=M
+      s"""|$popToD
           |@$symbol
           |M=D""".stripMargin
     case Temp => Translation.emit:
       require((0 to 7).contains(index.toInt), s"temp $index")
-      s"""|@SP
-          |AM=M-1
-          |D=M
+      s"""|$popToD
           |@R${index.toInt+5}
           |M=D""".stripMargin
     case Static =>
-      // for
-      //   filename <- Translation.inspect(_.filename)
-      // yield asm.Program.parse:
-      //   s"""|@SP
-      //       |AM=M-1
-      //       |D=M
-      //       |@${filename}.$index
-      //       |M=D""".stripMargin
       Translation.inspect(_.filename).map: filename =>
         asm.Program.parse:
-          s"""|@SP
-              |AM=M-1
-              |D=M
+          s"""|$popToD
               |@${filename}.$index
               |M=D""".stripMargin
 
