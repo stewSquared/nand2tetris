@@ -1,0 +1,5 @@
+function Main.main 0
+  push constant 3
+  call Double.double 1
+  call Double.double 1
+  return

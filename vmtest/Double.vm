@@ -1,0 +1,5 @@
+function Double.double 0
+  push argument 0
+  push argument 0
+  add
+  return
