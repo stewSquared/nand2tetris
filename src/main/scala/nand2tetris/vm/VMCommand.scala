@@ -54,12 +54,17 @@ case class Push(segment: Segment, index: U15) extends VMCommand:
             |D=A""".stripMargin
       writeConstantToD ++ pushD
     case Local|Argument|This|That => Translation.pure:
+      val computeA = index.toInt match
+        case 0 => "A=M"
+        case 1 => "A=M+1"
+        case 2 => "A=M+1\nA=A+1"
+        case n => s"""|D=M
+                      |@$n
+                      |A=D+A""".stripMargin
       val writeSegmentItoD = asm.Program.parse:
         s"""|// save $segment $index to D
             |@${Segment.symbolOf(segment)}
-            |D=M // D points to the base address of segment
-            |@$index
-            |A=D+A // A points to base+index of segment
+            |$computeA
             |D=M""".stripMargin
       writeSegmentItoD ++ pushD
     case Pointer => Translation.pure:
@@ -89,6 +94,15 @@ case class Pop(segment: Segment, index: U15) extends VMCommand:
        |D=M""".stripMargin
   def translate: Translation[asm.Program] = segment match
     case Constant => ???
+    case Local|Argument|This|That if index.toInt <= 6 => Translation.emit:
+      val computeA = index.toInt match
+        case 0 => "A=M"
+        case 1 => "A=M+1"
+        case n => ("A=M+1"::List.fill(n-1)("A=A+1")).mkString("\n")
+      s"""|$popToD
+          |@${Segment.symbolOf(segment)}
+          |$computeA
+          |M=D""".stripMargin
     case Local|Argument|This|That => Translation.emit:
       s"""|@${Segment.symbolOf(segment)}
           |D=M
