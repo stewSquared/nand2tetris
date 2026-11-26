@@ -129,31 +129,27 @@ case class Pop(segment: Segment, index: U15) extends VMCommand:
 enum ArithmeticLogical extends VMCommand:
   case Add, Sub, Neg, Eq, Gt, Lt, And, Or, Not
 
-  private def popYPointX = asm.Program.parse:
+  private def binop(op: String) = Translation.emit:
     // y, top of the stack, goes in D
     // x, the next value, gets modified in place as M
     s"""|@SP
         |AM=M-1
         |D=M
-        |A=A-1""".stripMargin
+        |A=A-1
+        |$op""".stripMargin
+
+  private def unop(op: String) = Translation.emit:
+    s"""|@SP
+        |A=M-1
+        |M=-M""".stripMargin
 
   override def translate: Translation[asm.Program] = this match
-    case Add => Translation.pure:
-      popYPointX :+ asm.Inst.parse("M=D+M")
-    case Sub => Translation.pure:
-      popYPointX :+ asm.Inst.parse("M=M-D")
-    case And => Translation.pure:
-      popYPointX :+ asm.Inst.parse("M=D&M")
-    case Or => Translation.pure:
-      popYPointX :+ asm.Inst.parse("M=D|M")
-    case Neg => Translation.emit:
-      s"""|@SP
-          |A=M-1
-          |M=-M""".stripMargin
-    case Not => Translation.emit:
-      s"""|@SP
-          |A=M-1
-          |M=!M""".stripMargin
+    case Add => binop("M=D+M")
+    case Sub => binop("M=M-D")
+    case And => binop("M=D&M")
+    case Or => binop("M=D|M")
+    case Neg => unop("M=M-1")
+    case Not => unop("M=!M")
     case cmp@(Eq|Gt|Lt) =>
       // y is top value, saved to D
       // x is next value, M
@@ -162,24 +158,28 @@ enum ArithmeticLogical extends VMCommand:
       for
         trueLabel <- Translation.freshLabel(s"$this.TRUE")
         endLabel <- Translation.freshLabel(s"$this.END")
+        xMinusY <- binop("D=M-D")
       yield
         val jumpCond = cmp match
           case Eq => "JEQ"
           case Gt => "JGT"
           case Lt => "JLT"
-        popYPointX ++ asm.Program.parse:
-          s"""|D=M-D
-              |@$trueLabel
+        val writeFalse =
+          """|@SP
+             |A=M-1
+             |M=0""".stripMargin
+        val writeTrue =
+          """|@SP
+             |A=M-1
+             |M=-1""".stripMargin
+        xMinusY ++ asm.Program.parse:
+          s"""|@$trueLabel
               |D;$jumpCond
-              |@SP
-              |A=M-1
-              |M=0
+              |$writeFalse
               |@$endLabel
               |0;JMP
               |($trueLabel)
-              |@SP
-              |A=M-1
-              |M=-1
+              |$writeTrue
               |($endLabel)
               |""".stripMargin
 
