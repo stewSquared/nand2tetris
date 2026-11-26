@@ -5,11 +5,12 @@ import vm.{Source, Config}
 case class Translator(sources: List[vm.Source], sysVm: vm.Source, config: vm.Config):
 
   private def translateSource(partial: vm.Translation[asm.Program], source: Source): vm.Translation[asm.Program] =
-    source.code.foldLeft(partial): (acc, command) =>
+    source.code.foldLeft(partial.changeFile(source.name)): (acc, command) =>
       for
-        lines <- acc.changeFile(source.name)
+        lines <- acc
+        comment = asm.Comment(s"translate $command")
         newLines <- command.translate
-      yield lines ++ newLines
+      yield lines ++ (comment +: newLines)
 
   def translate: asm.Program =
     val bootstrap: vm.Translation[asm.Program] =

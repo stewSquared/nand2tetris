@@ -41,10 +41,9 @@ object VMCommand:
 
 case class Push(segment: Segment, index: U15) extends VMCommand:
   def pushD: asm.Program = asm.Program.parse:
-    s"""|// push D to stack
-        |@SP
-        |AM=M+1 // increments stack, points at next space
-        |A=A-1 // point at top value
+    s"""|@SP
+        |AM=M+1
+        |A=A-1
         |M=D""".stripMargin
 
   override def translate: Translation[asm.Program] = segment match
@@ -62,8 +61,7 @@ case class Push(segment: Segment, index: U15) extends VMCommand:
                       |@$n
                       |A=D+A""".stripMargin
       val writeSegmentItoD = asm.Program.parse:
-        s"""|// save $segment $index to D
-            |@${Segment.symbolOf(segment)}
+        s"""|@${Segment.symbolOf(segment)}
             |$computeA
             |D=M""".stripMargin
       writeSegmentItoD ++ pushD
@@ -137,10 +135,12 @@ enum ArithmeticLogical extends VMCommand:
   case Add, Sub, Neg, Eq, Gt, Lt, And, Or, Not
 
   private def popYPointX = asm.Program.parse:
+    // y, top of the stack, goes in D
+    // x, the next value, gets modified in place as M
     s"""|@SP
-        |AM=M-1 // point at y, decrement sp
-        |D=M    // D=y
-        |A=A-1  // point at x""".stripMargin
+        |AM=M-1
+        |D=M
+        |A=A-1""".stripMargin
 
   override def translate: Translation[asm.Program] = this match
     case Add => Translation.pure:
@@ -289,7 +289,7 @@ case class Function(functionName: String, numVars: Int) extends VMCommand:
 case object Return extends VMCommand:
   def translate: Translation[asm.Program] =
     val saveFrame = asm.Program.parse:
-      s"""|// save frame
+      s"""|// save callee frame
           |@LCL
           |D=M
           |@13
@@ -300,8 +300,8 @@ case object Return extends VMCommand:
           |@13
           |D=M
           |@5
-          |A=D-A // A = address of return address
-          |D=M   // D = return address
+          |A=D-A
+          |D=M
           |@14
           |M=D""".stripMargin
 
@@ -309,7 +309,7 @@ case object Return extends VMCommand:
       s"""|// store return value at arg[0]
           |@SP
           |AM=M-1
-          |D=M // <- return value
+          |D=M
           |@ARG
           |A=M
           |M=D""".stripMargin
@@ -322,10 +322,10 @@ case object Return extends VMCommand:
           |M=D+1""".stripMargin
 
     def popSegment(segment: Segment) = asm.Program.parse:
-      s"""|// pop $segment
+      s"""|// pop $segment from calee frame
           |@13
-          |AM=M-1 // A = address of saved $segment base address
-          |D=M    // D = $segment base address
+          |AM=M-1
+          |D=M
           |@${symbolOf(segment)}
           |M=D""".stripMargin
 
@@ -334,8 +334,6 @@ case object Return extends VMCommand:
           |@14
           |A=M
           |0;JMP""".stripMargin
-
-    // NOTE: return label is not visible to callee
 
     Translation.pure:
       saveFrame
