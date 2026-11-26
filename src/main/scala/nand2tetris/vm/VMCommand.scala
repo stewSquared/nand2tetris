@@ -40,19 +40,18 @@ object VMCommand:
     case unary => ArithmeticLogical.valueOf(unary.capitalize)
 
 case class Push(segment: Segment, index: U15) extends VMCommand:
-  def pushD: asm.Program = asm.Program.parse:
+  private val pushD =
     s"""|@SP
         |AM=M+1
         |A=A-1
         |M=D""".stripMargin
 
   override def translate: Translation[asm.Program] = segment match
-    case Constant => Translation.pure:
-      val writeConstantToD = asm.Program.parse:
-        s"""|@$index
-            |D=A""".stripMargin
-      writeConstantToD ++ pushD
-    case Local|Argument|This|That => Translation.pure:
+    case Constant => Translation.emit:
+      s"""|@$index
+          |D=A
+          |$pushD""".stripMargin
+    case Local|Argument|This|That => Translation.emit:
       val computeA = index.toInt match
         case 0 => "A=M"
         case 1 => "A=M+1"
@@ -60,30 +59,26 @@ case class Push(segment: Segment, index: U15) extends VMCommand:
         case n => s"""|D=M
                       |@$n
                       |A=D+A""".stripMargin
-      val writeSegmentItoD = asm.Program.parse:
-        s"""|@${Segment.symbolOf(segment)}
-            |$computeA
-            |D=M""".stripMargin
-      writeSegmentItoD ++ pushD
-    case Pointer => Translation.pure:
-      val writePointerToD = asm.Program.parse:
-        import asm.HardcodedSymbol.{THIS, THAT}
-        require(index.toInt == 0 || index.toInt == 1, s"pointer $index")
-        val symbol = if index.toInt == 0 then THIS else THAT
-        s"""|@$symbol
-            |D=M""".stripMargin
-      writePointerToD ++ pushD
-    case Temp => Translation.pure:
+      s"""|@${Segment.symbolOf(segment)}
+          |$computeA
+          |D=M
+          |$pushD""".stripMargin
+    case Pointer => Translation.emit:
+      import asm.HardcodedSymbol.{THIS, THAT}
+      require(index.toInt == 0 || index.toInt == 1, s"pointer $index")
+      val symbol = if index.toInt == 0 then THIS else THAT
+      s"""|@$symbol
+          |D=M
+          |$pushD""".stripMargin
+    case Temp => Translation.emit:
       require((0 to 7).contains(index), s"temp $index")
-      val writeTempToD = asm.Program.parse:
-        s"""|@R${index.toInt+5}
-            |D=M""".stripMargin
-      writeTempToD ++ pushD
-    case Static => Translation.pure:
-      val writeStaticToD = asm.Program.parse:
-        s"""|@File.$index
-            |D=M""".stripMargin
-      writeStaticToD ++ pushD
+      s"""|@R${index.toInt+5}
+          |D=M
+          |$pushD""".stripMargin
+    case Static => Translation.emit:
+      s"""|@File.$index
+          |D=M
+          |$pushD""".stripMargin
 
 case class Pop(segment: Segment, index: U15) extends VMCommand:
   private val popToD: String =
