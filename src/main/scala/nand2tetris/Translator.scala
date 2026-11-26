@@ -13,13 +13,17 @@ case class Translator(sources: List[vm.Source], sysVm: vm.Source, config: vm.Con
       yield lines ++ (comment +: newLines)
 
   def translate: asm.Program =
-    val bootstrap: vm.Translation[asm.Program] =
-      val setSP = asm.Program.parse:
-        s"""|@${config.initSp}
-            |D=A
-            |@SP
-            |M=D""".stripMargin
-      vm.Call("Sys.init", 0).translate.map(setSP ++ _)
+    val bootstrap = vm.Translation.emit:
+      s"""|@${config.initSp}
+          |D=A
+          |@SP
+          |M=D
+          |@ARG
+          |M=D
+          |@LCL
+          |M=D
+          |@Sys.init
+          |0;JMP""".stripMargin
 
     val translation = (sysVm :: sources).foldLeft(bootstrap)(translateSource)
     val (assembly, context) = translation.run(vm.VMContext("", 0, ""))
